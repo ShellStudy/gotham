@@ -1,10 +1,18 @@
-import { StrictMode } from 'react'
-import { createRoot } from 'react-dom/client'
-import './index.css'
-import App from './App.jsx'
+import { createRoot } from 'react-dom/client';
+import { BrowserRouter } from 'react-router-dom';
+import { CookiesProvider } from 'react-cookie'
+import RootProvider from '@services/RootProvider.jsx'
+import 'bootstrap/dist/css/bootstrap.min.css';
+import '@/styles/orange.css';
+import App from '@/App';
+
 
 createRoot(document.getElementById('root')).render(
-  <StrictMode>
-    <App />
-  </StrictMode>,
-)
+  <CookiesProvider defaultSetOptions={{ path: '/' }}>
+    <RootProvider>
+      <BrowserRouter>
+        <App/>
+      </BrowserRouter>
+    </RootProvider>
+  </CookiesProvider>
+);

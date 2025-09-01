@@ -58,3 +58,11 @@ node_modules
 dist
 dist-ssr
 *.local
+
+# python
+**/__pycache__
+.env
+.venv
+
+# mariadb
+**/data
