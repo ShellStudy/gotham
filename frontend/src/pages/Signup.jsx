@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from "react-router-dom";
-import { POST, PUT } from '@services/Network.js';
+import { POST, PUT } from '@/services/network/Network.js';
 
 export default function Signup(){
   const [user, setUser] = useState({type: 1, service: 3, name:'', email:''});

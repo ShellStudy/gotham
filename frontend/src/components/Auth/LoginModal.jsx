@@ -1,8 +1,8 @@
 import { useState } from "react";
 import { Modal, Button, Form } from "react-bootstrap";
 import { useNavigate } from "react-router-dom";
-import { POST } from '@services/Network.js';
-import { useRoot } from '@services/RootProvider.jsx'
+import { POST } from '@/services/network/Network.js';
+import { useRoot } from '@/services/core/RootProvider.jsx'
 
 export default function LoginModal({ show, onHide }) {
   const navigate = useNavigate();

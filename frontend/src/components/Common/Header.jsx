@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import LoginModal from '@/components/LoginModal';
-import UserInfoModal from '@/components/UserInfoModal';
-import { useRoot } from '@services/RootProvider.jsx'
+import LoginModal from '@/components/Auth/LoginModal.jsx';
+import UserInfoModal from '@/components/Auth/UserInfoModal.jsx';
+import { useRoot } from '@/services/core/RootProvider.jsx'
 
 export default function Header(){
   const { access, tab, setTab } = useRoot()
@@ -15,7 +15,7 @@ export default function Header(){
 
   useEffect(() => {
     if (new URLSearchParams(search).get('login') === '1') setShow(true);
-  }, [search]);
+  }, [search, pathname]);
 
   return (
     <header className="banner" aria-label="상단 배너">
@@ -62,15 +62,17 @@ export default function Header(){
           {access ?
             <>
               <button className="btn btn-login" onClick={()=>setShowUser(true)} aria-label="회원 정보 열기">회원 정보</button>
-              <button
+              {pathname === "/" &&
+                <button
                 id="menuToggle"
                 className="menu-toggle burger"
                 aria-label="사이드바 열기/닫기"
                 aria-expanded={sidebarOpen}
                 onClick={()=>setSidebarOpen(v=>!v)}
-              >
-              <span></span><span></span><span></span>
-              </button>
+                >
+                <span></span><span></span><span></span>
+                </button>
+              }
             </>
           :
             <>

@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { Modal, Button, Form } from 'react-bootstrap';
-import { useRoot } from '@services/RootProvider.jsx'
-import { GET, FileUpload, DELETE } from '@services/Network.js';
+import { useRoot } from '@/services/core/RootProvider.jsx'
+import { GET, FileUpload, DELETE } from '@/services/network/Network.js';
 
 export default function UserInfoModal({ show, onHide }) {
   const { access, DEFAULT_AVATAR, getFile, getUserNo, removeStorage } = useRoot()

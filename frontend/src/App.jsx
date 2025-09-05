@@ -1,8 +1,11 @@
 import { Routes, Route } from 'react-router-dom';
-import Header from '@/components/Header';
 import Home from '@/pages/Home';
 import Signup from '@/pages/Signup';
-import Dashboard from '@/pages/Dashboard';
+import Header from '@/components/Common/Header.jsx';
+import Canvas from '@/pages/Canvas';
+import Library from '@/pages/Library';
+import StoryboardLibrary from '@/pages/StoryboardLibrary';
+import StoryboardWorkspace from '@/pages/StoryboardWorkspace';
 
 export default function App(){
   return (
@@ -11,6 +14,10 @@ export default function App(){
       <Routes>
         <Route path="/" element={<Home/>}/>
         <Route path="/signup" element={<Signup/>}/>
+        <Route path="/canvas" element={<Canvas/>}/>
+        <Route path="/library" element={<Library/>}/>
+        <Route path="/storyboards" element={<StoryboardLibrary/>}/>
+        <Route path="/storyboards/:id" element={<StoryboardWorkspace/>}/>
       </Routes>
     </>
   );

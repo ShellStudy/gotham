@@ -1,5 +1,5 @@
 import axios from 'axios'
-import { getCookie } from '@services/Commons.js'
+import { getCookie } from '@/services/core/Commons.js'
 
 const config = { 
   baseURL: import.meta.env.VITE_APP_GATEWAY_URL || 'http://localhost:7000',

@@ -1,6 +1,6 @@
 import { createContext, useContext, useState, useEffect } from "react"
 import { useCookies } from 'react-cookie';
-import { decode, encode } from '@services/Commons.js'
+import { decode, encode } from '@/services/core/Commons.js'
 import { jwtDecode } from 'jwt-decode';
 
 export const RootContext = createContext()
