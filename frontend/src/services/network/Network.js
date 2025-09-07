@@ -87,7 +87,7 @@ export const DELETE = async (url, data) => {
 export const FastAPI = async (method, url, data) => {
   try {
     let conf = {
-      baseURL: "http://localhost:8000",
+      baseURL: import.meta.env.VITE_APP_FASTAPI_URL || "http://localhost:8000",
       method: method,
       url: url,
       data
