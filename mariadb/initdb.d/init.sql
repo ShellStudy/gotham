@@ -1,3 +1,0 @@
-USE gotham;
-
-commit;
