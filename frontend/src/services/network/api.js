@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 const api = axios.create({
-  baseURL: 'http://localhost:8000',  // FastAPI 등 백엔드 주소
+  baseURL: import.meta.env.VITE_APP_FASTAPI_URL || 'http://localhost:8000',  // FastAPI 등 백엔드 주소
   withCredentials: true,             // 세션/쿠키 사용 시
   headers: { 'Content-Type': 'application/json' }
 });
