@@ -28,6 +28,12 @@ const RootProvider = ({children}) => {
     return baseUrl + "/oauth/file/u/" + fileNo
   }
 
+  const baseUrl2 = import.meta.env.VITE_APP_FASTAPI_URL || 'http://localhost:8000';
+  const getBoardFile = (path) => {
+    if(path == null) return None
+    return baseUrl2 + "/" + path
+  }
+
   const setStorage = (name, token) => {
     setCookie(name, encode(token));
     return true;
@@ -60,7 +66,7 @@ const RootProvider = ({children}) => {
   }, [])
 
   return (
-      <RootContext.Provider value={{ access, setStorage, removeStorage, tab, setTab, DEFAULT_AVATAR, getUserNo, getFile }}>
+      <RootContext.Provider value={{ access, setStorage, removeStorage, tab, setTab, DEFAULT_AVATAR, getUserNo, getFile, getBoardFile }}>
         {children}
       </RootContext.Provider>
     )

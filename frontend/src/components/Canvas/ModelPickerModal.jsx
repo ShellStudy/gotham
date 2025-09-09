@@ -18,7 +18,7 @@ export default function ModelPickerModal({ show, onHide, value, onSelect, option
                 key={opt.value}
                 action
                 active={active}
-                onClick={() => onSelect?.(opt.value)}
+                onClick={() => onSelect?.(Number(opt.value))}
               >
                 <div className="d-flex justify-content-between align-items-center">
                   <div>

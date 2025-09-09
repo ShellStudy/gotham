@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import LoginModal from '@/components/Auth/LoginModal.jsx';
 import UserInfoModal from '@/components/Auth/UserInfoModal.jsx';
 import { useRoot } from '@/services/core/RootProvider.jsx'
@@ -13,6 +13,8 @@ export default function Header(){
   const { pathname, search } = useLocation();
   // const isApp = pathname.startsWith('/app');   // ✅ /app이면 auth 버튼 숨김
 
+  const navigate = useNavigate()
+
   useEffect(() => {
     if (new URLSearchParams(search).get('login') === '1') setShow(true);
   }, [search, pathname]);
@@ -20,7 +22,7 @@ export default function Header(){
   return (
     <header className="banner" aria-label="상단 배너">
       <div className="banner-inner">
-        {access &&
+        {/* {access && */}
           <>
             {/* 슬라이드 사이드바 (항상 렌더, class로 열림/닫힘 제어) */}
             <aside
@@ -31,12 +33,12 @@ export default function Header(){
               <div className="tabs" role="tablist" aria-label="Main Tabs">
                 <button
                   className={`btn btn-tab ${tab==='drawing' ? 'is-active' : ''}`}
-                  onClick={()=>setTab('drawing')}
+                  onClick={()=> {setTab('drawing'); navigate("/")}}
                   id="btn-drawing"
                 >🎨 드로잉</button>
                 <button
                   className={`btn btn-tab ${tab==='library' ? 'is-active' : ''}`}
-                  onClick={()=>setTab('library')}
+                  onClick={()=> {setTab('library'); navigate("/")}}
                   id="btn-library"
                 >📁 라이브러리</button>
               </div>
@@ -51,7 +53,7 @@ export default function Header(){
               />
             )}
           </>
-        }
+        {/* } */}
         <div className="logo" aria-label="사이트 로고" style={{cursor:"pointer"}} onClick={()=>location.href = "/"}>
           <span className="logo-dot" aria-hidden="true"></span>
           <span>Orange</span>
@@ -62,7 +64,7 @@ export default function Header(){
           {access ?
             <>
               <button className="btn btn-login" onClick={()=>setShowUser(true)} aria-label="회원 정보 열기">회원 정보</button>
-              {pathname === "/" &&
+              {/* {pathname === "/" && */}
                 <button
                 id="menuToggle"
                 className="menu-toggle burger"
@@ -72,7 +74,7 @@ export default function Header(){
                 >
                 <span></span><span></span><span></span>
                 </button>
-              }
+              {/* } */}
             </>
           :
             <>

@@ -1,4 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { MODEL_OPTIONS, getModelLabel, getModelValue } from '@/config/models.js';
+import { ASPECT_OPTIONS, getAspectLabel } from '@/config/aspects.js';
 
 /**
  * 무한 스크롤 + 서버 로딩 훅
@@ -34,17 +36,19 @@ export default function useInfiniteLibrary({ access, api, q, qBy, aspect, sort }
       }
       setError('');
 
+      if(qBy == 1) q = String(getModelValue(q))
+
       const params = {
-        q: q || undefined,
-        qBy: qBy || 'prompt',
-        aspect: aspect !== 'all' ? aspect : undefined,
+        q: q,
+        qBy: qBy,
+        aspect: aspect,
         sort,
-        cursor: reset ? null : cursor,
+        cursor: reset,
         limit: 24,
       };
 
-      const { data } = await api.get('/library/images', { params, timeout: 30000 });
-      const list = Array.isArray(data?.items) ? data.items : (Array.isArray(data) ? data : []);
+      const { data } = await api.post('/gallery', params, {timeout: 1000 * 60 * 5});
+      const list = Array.isArray(data?.result) ? data.result : (Array.isArray(data) ? data : []);
       const next = data?.nextCursor ?? null;
 
       setItems(prev => (reset ? list : [...prev, ...list]));
@@ -76,7 +80,7 @@ export default function useInfiniteLibrary({ access, api, q, qBy, aspect, sort }
   // 최초 + 적용값 변경 시에만 리셋 로드
   useEffect(() => {
     if (!access) return;
-    // fetchPage({ reset: true });
+    fetchPage({ reset: true });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [access, q, qBy, aspect, sort]); // fetchPage를 deps에서 제외해 무한 리셋 방지
 

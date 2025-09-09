@@ -1,6 +1,10 @@
-import aspectLabel from '../../library/utils/aspectLabel.js';
+import { useEffect } from 'react'
+import { useRoot } from '@/services/core/RootProvider.jsx'
+import { MODEL_OPTIONS, getModelLabel } from '@/config/models.js';
+import { ASPECT_OPTIONS, getAspectLabel } from '@/config/aspects.js';
 
 export default function Lightbox({ open, item, onClose }) {
+  const { getBoardFile } = useRoot();
   if (!open || !item) return null;
   return (
     <>
@@ -12,22 +16,14 @@ export default function Lightbox({ open, item, onClose }) {
           <button className="btn-close" aria-label="닫기" onClick={onClose} />
         </div>
         <div className="lib-lightbox-body">
-          <img src={item.url} alt={item.prompt ?? '이미지'} />
+          <img src={getBoardFile(item.attachPath)} alt={item.prompt ?? '이미지'} />
           <div className="lib-meta">
-            {item.prompt && <div className="meta-row"><b>프롬프트</b><span>{item.prompt}</span></div>}
-            {item.model &&  <div className="meta-row"><b>모델</b><span>{item.model}</span></div>}
-            {(item.width && item.height) && (
-              <div className="meta-row">
-                <b>사이즈</b>
-                <span>{item.width}×{item.height} ({aspectLabel(item.width,item.height)})</span>
-              </div>
-            )}
-            {item.createdAt && (
-              <div className="meta-row"><b>생성</b><span>{new Date(item.createdAt).toLocaleString()}</span></div>
-            )}
+            <div className="meta-row"><b>프롬프트</b><span>{item.prompt}</span></div>
+            <div className="meta-row"><b>모델</b><span>{getModelLabel(item.model)}</span></div>
+            <div className="meta-row"><b>비율</b><span>({getAspectLabel(item.ratio)})</span></div>
             <div className="meta-actions">
-              <a className="btn btn-mini" href={item.url} target="_blank" rel="noreferrer">새 탭에서 보기</a>
-              <a className="btn btn-mini" href={item.url} download>다운로드</a>
+              <a className="btn btn-mini" href={getBoardFile(item.attachPath)} target="_blank" rel="noreferrer">새 탭에서 보기</a>
+              <a className="btn btn-mini" href={getBoardFile(`download/${item.fileNo}`)} target="_blank">다운로드</a>
             </div>
           </div>
         </div>

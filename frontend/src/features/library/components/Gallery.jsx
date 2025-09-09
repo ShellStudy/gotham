@@ -1,4 +1,5 @@
 import aspectLabel from '../../library/utils/aspectLabel.js';
+import { useRoot } from '@/services/core/RootProvider.jsx'
 
 export default function Gallery({
   loading,
@@ -8,6 +9,7 @@ export default function Gallery({
   onToggleSelect,
   onOpen,
 }) {
+  const { getBoardFile } = useRoot();
   return (
     <section className="gallery" aria-live="polite">
       {loading && (
@@ -22,7 +24,7 @@ export default function Gallery({
       )}
 
       {!loading && items.map((it) => {
-        const id = it.id || it.url;
+        const id = it.no || it.url;
         const isSel = selected.has(id);
         return (
           <figure
@@ -33,7 +35,7 @@ export default function Gallery({
               else onOpen(it);
             }}
           >
-            <img src={it.url} alt={it.prompt || '생성 이미지'} loading="lazy" />
+            <img src={getBoardFile(it.attachPath)} alt={it.prompt || '생성 이미지'} loading="lazy" />
             {(it.width && it.height) && (
               <span className="ratio-badge">{aspectLabel(it.width, it.height)}</span>
             )}

@@ -9,7 +9,7 @@ export default function PromptDock({
   // 도구/모델/비율
   toolsOpen, onToggleTools,
   modelLabel = '모델 선택', onOpenModelPicker,
-  aspectLabel = '원본', onOpenAspectPicker,
+  aspectLabel = '1:1', onOpenAspectPicker,
   // 업로드 이미지 (미리보기/선택/삭제)
   initImage,                    // dataURL | null
   onInitSelect,                 // (FileList) => void

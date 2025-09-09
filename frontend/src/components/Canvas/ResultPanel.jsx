@@ -171,7 +171,7 @@ export default function ResultPanel({ open, onOpenChange, url, onClose }) {
 
         <div className="result-body">
           {url ? (
-            <img src={url} alt="생성 결과" />
+            <img src={url} alt="생성 결과" style={{minWidth: '30%', minHeight: '80%', maxHeight: '100%', objectFit: 'cover'}}/>
           ) : (
             <div className="result-empty">
               <div className="re-ico" aria-hidden>🖼️</div>

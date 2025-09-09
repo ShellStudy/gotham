@@ -1,6 +1,7 @@
 // src/Canvas/hooks/useGeneration.js
 import { useCallback, useState } from 'react';
 import api from '@/services/network/api.js';
+import { FastAPI } from '@/services/network/Network.js';
 
 // 응답에서 URL 추출
 const pickImageUrl = (data) => {
@@ -19,7 +20,10 @@ export default function useGeneration({ getSaveDataURL }) {
   const [error, setError] = useState('');
   const [resultUrl, setResultUrl] = useState('');
 
-  const generate = useCallback(async ({ prompt, model, aspect }) => {
+  const generate = useCallback(async ({ prompt, model, aspect, getUserNo }) => {
+    // const init = getSaveDataURL?.() || '';
+    // FastAPI("POST", "/gen", { prompt, init_image: init, model, aspect, "no": getUserNo() })
+    // .then(res => console.log(res))
     if (!prompt?.trim() || isGenerating) return '';
     setError('');
     setResultUrl('');
@@ -27,12 +31,14 @@ export default function useGeneration({ getSaveDataURL }) {
     try {
       const init = getSaveDataURL?.() || '';
       const { data } = await api.post(
-        '/ai/generate',
-        { prompt, init_image: init, model, mode: 'img2img', aspect },
+        '/gen',
+        { prompt, init_image: init, model, aspect, "no": getUserNo() },
         { timeout: 1000 * 60 * 5 }
       );
-      const url = pickImageUrl(data);
+      let url = pickImageUrl(data);
       if (url) {
+        const host = import.meta.env.VITE_APP_FASTAPI_URL || "http://localhost:8000"
+        url = `${host}/${url}`
         setResultUrl(url);
         return url;           // ✅ 호출자에게도 즉시 반환
       }

@@ -10,7 +10,7 @@ import { MODEL_OPTIONS, getModelLabel } from '@/config/models.js';
 import { ASPECT_OPTIONS, getAspectLabel } from '@/config/aspects.js';
 
 export default function useCanvasPage() {
-  const { access } = useRoot();
+  const { access, getUserNo } = useRoot();
   const [search] = useSearchParams();
   const draftParam = search.get('draft') || null;
 
@@ -30,8 +30,8 @@ export default function useCanvasPage() {
   const [strokeWidth, setStrokeWidth] = useState(3);
 
   // Model / Aspect
-  const [model, setModel] = useState('img2img_real');
-  const [aspect, setAspect] = useState(null);
+  const [model, setModel] = useState(0);
+  const [aspect, setAspect] = useState(0);
 
   // Prompt / Result
   const [prompt, setPrompt] = useState('');
@@ -74,7 +74,7 @@ export default function useCanvasPage() {
     metaDeps: { tool, size, aspect, hasInitImage: !!initImage, stroke, fill, strokeWidth, brushColor: color },
     onLoaded: (doc) => {
       setPrompt(doc.prompt || '');
-      setModel(doc.model || 'img2img_real');
+      setModel(doc.model || 0);
       if (doc.meta?.aspect) setAspect(doc.meta.aspect);
       if (doc.initImageDataURL) setInitImage(doc.initImageDataURL);
       if (doc.meta?.stroke) setStroke(doc.meta.stroke);
@@ -122,7 +122,7 @@ export default function useCanvasPage() {
       setOverlayProgress(prev => (prev ? { ...prev, value: Math.round(p) } : null));
     }, 120);
 
-    const url = await generate({ prompt, model, aspect });
+    const url = await generate({ prompt, model, aspect, getUserNo });
 
     if (progTimerRef.current) { clearInterval(progTimerRef.current); progTimerRef.current = null; }
     let end = p;
@@ -296,7 +296,11 @@ export default function useCanvasPage() {
   }), []);
 
   const handleInitSelect = useCallback(async (files) => {
-    try { const dataUrl = await readFilesToDataURL(files); setInitImage(dataUrl); markDirty(); } catch {}
+    try { 
+      const dataUrl = await readFilesToDataURL(files); 
+      setInitImage(dataUrl); 
+      markDirty();
+    } catch {}
   }, [readFilesToDataURL, markDirty]);
 
   const handleInitClear = useCallback(() => { setInitImage(null); markDirty(); }, [markDirty]);

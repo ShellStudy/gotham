@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import api from '@/services/network/api.js';
 import { useRoot } from '@/services/core/RootProvider.jsx';
 
@@ -9,9 +9,10 @@ import useSelection from '@/features/library/hooks/useSelection.js';
 import Lightbox from '@/features/library/components/Lightbox.jsx';
 import LibraryToolbar from '@/features/library/components/LibraryToolbar.jsx';
 import Gallery from '@/features/library/components/Gallery.jsx';
+import { FastAPI } from '@/services/network/NetWork.js'
 
 export default function Library(){
-  const { access } = useRoot();
+  const { access, getUserNo } = useRoot();
   const [active, setActive] = useState(null);
 
   // 검색/필터 상태 (draft ↔ applied)
@@ -20,7 +21,7 @@ export default function Library(){
   // 데이터 로딩 (applied 값만 의존)
   const {
     loading, error, items, setItems,
-    hasMore, loadingMore, sentinelRef
+    hasMore, loadingMore, sentinelRef, reload
    } = useInfiniteLibrary({
     access,
     api,
@@ -40,14 +41,25 @@ export default function Library(){
     if (selected.size === 0) return;
     if (!confirm(`선택한 ${selected.size}개 이미지를 삭제할까요?`)) return;
     try {
-      await api.post('/library/images/bulk-delete', { ids: Array.from(selected) }, { timeout: 30000 });
-      setItems(prev => prev.filter(it => !selected.has(it.id || it.url)));
-      cancelDeleteMode();
+      const gallerys = Array.from(selected).join(",");
+      FastAPI("DELETE", "/gallery", { ids: gallerys, userNo: getUserNo() })
+      .then(res => {
+        if(res.status) {
+          // setItems(prev => prev.filter(it => !selected.has(it.id || it.url)));
+          cancelDeleteMode();
+          reload();
+        }
+      })
+      // await api.delete('/gallery', { ids: gallerys, userNo: getUserNo() }, { timeout: 30000 })
     } catch (e) {
       console.error(e);
       alert('삭제 중 오류가 발생했습니다.');
     }
   };
+
+  useEffect(() => {
+    search.applySearch();
+  }, [search.aspectDraft, search.sortDraft])
 
   if (!access) return null;
 

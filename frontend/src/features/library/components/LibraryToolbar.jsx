@@ -1,3 +1,5 @@
+import { ASPECT_OPTIONS, getAspectLabel } from '@/config/aspects.js';
+
 export default function LibraryToolbar({
   // drafts
   qDraft, setQDraft,
@@ -27,9 +29,9 @@ export default function LibraryToolbar({
               aria-label="검색 대상"
               title="검색 대상"
             >
-              <option value="prompt">프롬프트</option>
-              <option value="model">모델</option>
-              <option value="memo">메모</option>
+              <option value="0">프롬프트</option>
+              <option value="1">모델</option>
+              {/* <option value="2">메모</option> */}
             </select>
             <input
               className="form-control"
@@ -51,17 +53,17 @@ export default function LibraryToolbar({
       <div className="lt-right">
         <div className="filters">
           <button
-            className={`chip ${aspectDraft==='all'?'is-active':''}`}
-            onClick={()=>setAspectDraft('all')}
-            aria-pressed={aspectDraft==='all'}
+            className={`chip ${aspectDraft===-1?'is-active':''}`}
+            onClick={()=>setAspectDraft(-1)}
+            aria-pressed={aspectDraft===-1}
           >전체</button>
-          {['1:1','4:3','3:4','16:9','9:16'].map(r => (
+          {ASPECT_OPTIONS.map((r, i) => (
             <button
-              key={r}
-              className={`chip ${aspectDraft===r?'is-active':''}`}
-              onClick={()=>setAspectDraft(r)}
-              aria-pressed={aspectDraft===r}
-            >{r}</button>
+              key={i}
+              className={`chip ${aspectDraft===r.value?'is-active':''}`}
+              onClick={()=> setAspectDraft(r.value)}
+              aria-pressed={aspectDraft===r.value}
+            >{r.label}</button>
           ))}
         </div>
         <div className="filters">

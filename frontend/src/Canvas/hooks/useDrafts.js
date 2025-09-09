@@ -50,18 +50,18 @@ export default function useDrafts({
   const markDirty = useCallback(() => setDirtyAt(Date.now()), []);
 
   // 디바운스 자동 저장
-  useEffect(() => {
-    if (!access || !dirtyAt) return;
-    const t = setTimeout(() => { saveNow().catch(() => {}); }, 1200);
-    return () => clearTimeout(t);
-  }, [access, dirtyAt, saveNow]);
+  // useEffect(() => {
+  //   if (!access || !dirtyAt) return;
+  //   const t = setTimeout(() => { saveNow().catch(() => {}); }, 1200);
+  //   return () => clearTimeout(t);
+  // }, [access, dirtyAt, saveNow]);
 
   // beforeunload 저장
-  useEffect(() => {
-    const handler = () => { try { saveNow(); } catch {} };
-    window.addEventListener('beforeunload', handler);
-    return () => window.removeEventListener('beforeunload', handler);
-  }, [saveNow]);
+  // useEffect(() => {
+  //   const handler = () => { try { saveNow(); } catch {} };
+  //   window.addEventListener('beforeunload', handler);
+  //   return () => window.removeEventListener('beforeunload', handler);
+  // }, [saveNow]);
 
   // 드래프트 로드
   useEffect(() => {

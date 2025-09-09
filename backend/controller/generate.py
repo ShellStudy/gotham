@@ -5,6 +5,8 @@ import json
 from urllib import request
 import asyncio
 import uuid
+import base64
+import random
 from datetime import datetime
 import os
 from dotenv import load_dotenv
@@ -14,8 +16,40 @@ COMFYUI_URL = os.getenv('COMFYUI_URL')
 route = APIRouter(tags=["이미지 생성"])
 
 class Prompt(BaseModel):
-  p : str
-  no : int
+  no: int
+  prompt : str
+  init_image: str
+  model: int
+  aspect: int
+  
+models = ["dreamshaper_8.safetensors","majicmixRealistic_v7.safetensors"]
+aspects = [
+  {'width_ratio': 1, 'height_ratio': 1},
+  {'width_ratio': 4, 'height_ratio': 3},
+  {'width_ratio': 3, 'height_ratio': 4},
+  {'width_ratio': 16, 'height_ratio': 9},
+  {'width_ratio': 9, 'height_ratio': 16},
+]
+
+class PromptTest(BaseModel):
+  prompt: str
+  init_image: str
+  model: int
+  aspect: int
+
+@route.post("/gentest")
+def test(promptTest: PromptTest): 
+  now = datetime.now()
+  formatted_date = now.strftime("%Y%m%d")
+  path = f"images/{formatted_date}"
+  if not os.path.exists(path):
+    os.makedirs(path)
+  image_data = base64.b64decode(promptTest.init_image.replace("data:image/png;base64,", ""))
+  file_name = uuid.uuid1().hex
+  file_path = f"{path}/{file_name}.png"
+  with open(file_path, "wb") as f:
+    f.write(image_data)
+  return {"status": True}
 
 @route.post("/gen")
 async def comfyUI(prompt : Prompt):
@@ -23,7 +57,28 @@ async def comfyUI(prompt : Prompt):
     # p = "a majestic lion with a crown of stars, photorealistic"
     with open("flow/1.json", "r", encoding="utf-8") as f:
       workflow = json.load(f)
-    workflow["6"]["inputs"]["text"] = prompt.p
+      
+    # 1. 긍정 프롬프트
+    workflow["6"]["inputs"]["text"] = prompt.prompt
+
+    # 2. 입력 이미지
+    startIndex = prompt.init_image.find(",") + 1
+    image_data = base64.b64decode(prompt.init_image[startIndex:])
+    base64_data = base64.b64encode(image_data).decode("utf-8")
+    workflow["25"]["inputs"]["data"] = base64_data
+    workflow["25"]["class_type"] = "LoadImageFromBase64"
+    
+    # 3. 생성형 AI 모델
+    workflow["14"]["inputs"]["ckpt_name"] = models[prompt.model]
+    
+    # 4. 이미지 비율
+    aspect = aspects[prompt.aspect]
+    workflow["23"]["inputs"]["width_ratio"] = aspect["width_ratio"]
+    workflow["23"]["inputs"]["height_ratio"] = aspect["height_ratio"]
+    
+    # SEED 생성기
+    number = random.randint(10**14, 10**15 - 1)
+    workflow["3"]["inputs"]["seed"] = number
 
     prompt_id = queue_prompt(workflow)
     result = await check_progress(prompt_id)
@@ -59,22 +114,21 @@ async def comfyUI(prompt : Prompt):
         cur.execute(sql)
         conn.commit()
         last_id = cur.lastrowid
-        print(last_id)
         
-        p = prompt.p.replace("\'", "\"")
+        p = prompt.prompt.replace("\'", "\"")
         
         sql = f'''
-              INSERT INTO pixel.`board`
-              (`prompt`, `fileNo`, `useYn`, `regUserNo`) 
+              INSERT INTO gotham.`gallery`
+              (`model`, `ratio`, `prompt`, `fileNo`, `useYn`, `regUserNo`) 
               VALUE 
-              ('{p}', {last_id}, 'Y', {prompt.no})
+              ({prompt.model}, {prompt.aspect}, '{p}', {last_id}, 'Y', {prompt.no})
         '''
         cur.execute(sql)
         
         conn.commit()
         cur.close()
         conn.close()
-        return {"status": True}
+        return {"status": True, "url": file_path}
     else:
       return {"status": False}
   except HTTPException as e:

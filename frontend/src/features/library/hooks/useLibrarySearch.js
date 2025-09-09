@@ -1,6 +1,6 @@
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useMemo, useState, useEffect } from 'react';
 
-const DEFAULTS = { q:'', qBy:'prompt', aspect:'all', sort:'newest' };
+const DEFAULTS = { q:'', qBy:0, aspect:-1, sort:'newest' };
 
 export default function useLibrarySearch() {
   // draft: UI 입력 단계 (요청 X)
