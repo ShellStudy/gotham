@@ -42,6 +42,10 @@ export default function PromptDock({
     const files = e.dataTransfer?.files;
     if (files && files.length) onInitSelect?.(files);
   };
+  const clearImage = () => {
+    fileRef.current.value = null;
+    onInitClear?.();
+  }
 
   // 진행 값 보정(0~100)
   const clamp = (n) => Math.max(0, Math.min(100, Math.round(n || 0)));
@@ -89,31 +93,22 @@ export default function PromptDock({
               aria-label="이미지 추가"
               title="이미지 추가 (클릭 또는 드래그 앤 드롭)"
             >
+              <input ref={fileRef} type="file" accept="image/*" hidden onChange={(e)=> onInitSelect?.(e.target.files)} />
               {initImage ? (
-                <>
-                  <img className="init-thumb" src={initImage} alt="업로드 이미지 미리보기" />
-                  <button
-                    type="button"
-                    className="init-remove"
-                    onClick={(e)=>{ e.stopPropagation(); onInitClear?.(); }}
-                    aria-label="업로드 이미지 제거"
-                    title="제거"
-                  >✕</button>
-                </>
+                <img className="init-thumb" src={initImage} alt="업로드 이미지 미리보기" style={{position: 'static'}} />
               ) : (
                 <div className="init-empty">
                   <div className="plus">＋</div>
                   <div className="label">이미지 추가</div>
                 </div>
               )}
-              <input
-                ref={fileRef}
-                type="file"
-                accept="image/*"
-                hidden
-                onChange={(e)=> onInitSelect?.(e.target.files)}
-              />
             </div>
+            {initImage && (
+              <button
+                type="button" onClick={clearImage} aria-label="업로드 이미지 제거" title="제거" className="init-remove" 
+                style={{zIndex: '100', position: 'absolute', top: '15px', left: '95px', border: 'none', borderRadius: '50%', opacity: '0.7'}}
+              >✕</button>
+            )}
           </div>
 
           {/* ===== 프롬프트 / 액션 ===== */}

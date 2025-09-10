@@ -64,7 +64,7 @@ def findAll(gallery: Gallery):
       model = gallery.q
     
     sql = f'''
-          SELECT g.`no`, g.`model`, g.`ratio`, g.`prompt`, g.`draft`, g.`regUserNo`, g.`fileNo`, f.attachPath
+          SELECT g.`no`, g.`model`, g.`ratio`, g.`prompt`, g.`regUserNo`, g.`fileNo`, f.attachPath
             FROM gotham.`gallery` AS g
           INNER JOIN auth.`file` AS f
               ON (g.fileNo = f.`no` AND f.useYn = 'Y')

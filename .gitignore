@@ -64,6 +64,3 @@ dist-ssr
 **/images
 .env
 .venv
-
-# mariadb
-**/data

@@ -1,4 +1,4 @@
-from controller import root, story_board, generate, gallery
+from controller import root, story_board, generate, gallery, canvas
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
@@ -16,6 +16,6 @@ app.add_middleware(
 )
 static_dir = os.path.join(os.path.dirname(__file__), "images")
 app.mount("/images", StaticFiles(directory=static_dir), name="images")
-routes = [root.route, story_board.route, generate.route, gallery.route]
+routes = [root.route, story_board.route, generate.route, gallery.route, canvas.route]
 for route in routes:
   app.include_router(route)

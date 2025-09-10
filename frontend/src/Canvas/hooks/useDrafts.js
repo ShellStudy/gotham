@@ -19,9 +19,14 @@ export default function useDrafts({
 
   const sigOf = (dataUrl) => (dataUrl ? `${dataUrl.length}:${dataUrl.slice(0, 128)}` : '');
 
+  const encode = (param) => {
+    return window.btoa(encodeURIComponent(param))
+  }
+
   const saveNow = useCallback(async () => {
     const imageDataURL = getSaveDataURL?.();
     const sig = sigOf(imageDataURL);
+    let saved = null;
     if (!imageDataURL || sig === lastSavedSig) return;
 
     setSaving(true);
@@ -39,11 +44,12 @@ export default function useDrafts({
         : null;
       if (extra && typeof extra === 'object') Object.assign(payload, extra);
 
-      const saved = await saveDraft(payload);
+      saved = await saveDraft(payload);
       if (!draftId && saved?.id) setDraftId(saved.id);
       setLastSavedSig(sig);
     } finally {
       setSaving(false);
+      return saved == null ? null : encode(JSON.stringify(saved))
     }
   }, [draftId, getSaveDataURL, lastSavedSig, metaDeps, getAdditionalDraftFields]);
 
@@ -69,8 +75,10 @@ export default function useDrafts({
     const q = draftParam;
     (async () => {
       let doc = null;
-      if (q === 'last') doc = await getLastDraft();
-      else if (q) doc = await getDraftById(q);
+      // if (q === 'last') doc = await getLastDraft(); 
+      // else if (q) doc = await getDraftById(q);
+
+      if(q) doc = await getLastDraft();
       if (!doc?.imageDataURL) return;
 
       if (loadedIdRef.current === doc.id) return; // 같은 문서 재로드 방지
@@ -90,5 +98,6 @@ export default function useDrafts({
     markDirty,
     lastSavedSig,
     setLastSavedSig,
+    getDraftById,
   };
 }

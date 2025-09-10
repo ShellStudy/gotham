@@ -37,7 +37,7 @@ const Canvas2 = () => {
 
 const Canvas = () => {
   const {
-    access, pageClass,
+    access, pageClass, 
     stageProps, isGenerating,
     sidebarProps, promptProps,
     modelModalProps, aspectModalProps,

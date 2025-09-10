@@ -8,6 +8,7 @@ import useGeneration from '@/Canvas/hooks/useGeneration.js';
 import * as mockdb from '@/services/data/mockdb.js';
 import { MODEL_OPTIONS, getModelLabel } from '@/config/models.js';
 import { ASPECT_OPTIONS, getAspectLabel } from '@/config/aspects.js';
+import { FastAPI } from '@/services/network/Network.js';
 
 export default function useCanvasPage() {
   const { access, getUserNo } = useRoot();
@@ -69,7 +70,7 @@ export default function useCanvasPage() {
   }, [initImage, toDataURL]);
 
   // Drafts
-  const { draftId, saving, saveNow, markDirty } = useDrafts({
+  const { draftId, saving, saveNow, markDirty, getDraftById } = useDrafts({
     access, draftParam, getSaveDataURL, loadFromDataURL,
     metaDeps: { tool, size, aspect, hasInitImage: !!initImage, stroke, fill, strokeWidth, brushColor: color },
     onLoaded: (doc) => {
@@ -170,13 +171,22 @@ export default function useCanvasPage() {
       const dataUrl = getSaveDataURL();
       if (!dataUrl) throw new Error('no image');
       const name = (window.prompt?.('저장할 이름(프로젝트/파일명)', defaultDBName()) || '').trim();
-      if (!name) { setSavingDB(false); return; }
-      mockdb.save({
-        name,
-        imageDataURL: dataUrl,
-        meta: { tool, size, aspect, prompt, model, draftId, stroke, fill, strokeWidth, brushColor: color },
-      });
-      refreshDB();
+      if (!name) { setSavingDB(false); return; }      
+      // name, draft << 데이터베이스에 저장
+      const draft = await saveNow();
+      const userNo = getUserNo()
+      
+      FastAPI("PUT", "/canvas", {userNo, name, draft})
+      .then(res => {
+        console.log(res)
+      })
+
+      // mockdb.save({
+      //   name,
+      //   imageDataURL: dataUrl,
+      //   meta: { tool, size, aspect, prompt, model, draftId, stroke, fill, strokeWidth, brushColor: color },
+      // });
+      // refreshDB();
       setToast({ type: 'ok', msg: 'DB(모의) 저장 완료' });
     } catch {
       setToast({ type: 'err', msg: 'DB(모의) 저장 실패' });
@@ -187,17 +197,21 @@ export default function useCanvasPage() {
 
   const handleLoadFromDB = useCallback((id) => {
     try {
-      const rec = mockdb.get(id);
-      if (!rec) { setToast({ type: 'err', msg: '항목을 찾을 수 없습니다.' }); return; }
-      if (rec.imageDataURL) loadFromDataURL(rec.imageDataURL);
-      const m = rec.meta || {};
-      if (typeof m.prompt === 'string') setPrompt(m.prompt);
-      if (typeof m.model  === 'string') setModel(m.model);
-      if (m.aspect) setAspect(m.aspect);
-      if (m.stroke) setStroke(m.stroke);
-      if (m.fill) setFill(m.fill);
-      if (m.strokeWidth) setStrokeWidth(m.strokeWidth);
-      if (m.brushColor) setColor(m.brushColor);
+
+      // const rec = mockdb.get(id);
+
+      // 데이터베이스의 값 비교 작업 필요
+      // if (!rec) { setToast({ type: 'err', msg: '항목을 찾을 수 없습니다.' }); return; }
+      // if (rec.imageDataURL) loadFromDataURL(rec.imageDataURL);
+
+      // const m = rec.meta || {};
+      // if (typeof m.prompt === 'string') setPrompt(m.prompt);
+      // if (typeof m.model  === 'string') setModel(m.model);
+      // if (m.aspect) setAspect(m.aspect);
+      // if (m.stroke) setStroke(m.stroke);
+      // if (m.fill) setFill(m.fill);
+      // if (m.strokeWidth) setStrokeWidth(m.strokeWidth);
+      // if (m.brushColor) setColor(m.brushColor);
       setToast({ type: 'ok', msg: `"${rec.name || '(무제)'}" 불러오기 완료` });
       setDbOpen(false);
     } catch {
@@ -308,7 +322,7 @@ export default function useCanvasPage() {
   const pageClass = `canvas-page ${resultOpen ? 'is-sheet-open' : ''}`;
 
   return {
-    access, pageClass,
+    access, pageClass, 
     // Stage
     stageProps: {
       containerRef, canvasRef, onPointerEnter, onPointerLeave, onPointerDown, onPointerMove, onPointerUp, cursor, brushSize: size, tool,

@@ -54,7 +54,7 @@ export default function Header(){
             )}
           </>
         {/* } */}
-        <div className="logo" aria-label="사이트 로고" style={{cursor:"pointer"}} onClick={()=>location.href = "/"}>
+        <div className="logo" aria-label="사이트 로고" style={{cursor:"pointer"}} onClick={()=>navigate("/")}>
           <span className="logo-dot" aria-hidden="true"></span>
           <span>Orange</span>
         </div>
