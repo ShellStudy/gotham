@@ -145,7 +145,17 @@ export default function useCanvasPage() {
   const [dbOpen, setDbOpen] = useState(false);
   const [dbItems, setDbItems] = useState([]);
   const refreshDB = useCallback(() => setDbItems(mockdb.list()), []);
-  const toggleDB = useCallback(() => { setDbOpen(v => { const n = !v; if (n) refreshDB(); return n; }); }, [refreshDB]);
+  const toggleDB = useCallback(() => { 
+    const userNo = getUserNo()
+    FastAPI("POST",`/canvas/${userNo}`,{})
+    .then(res => {
+      if(res.status) {
+        setDbOpen(true)
+        setDbItems(res.result)
+      }
+    })
+    // setDbOpen(v => { const n = !v; if (n) refreshDB(); return n; });
+  }, [refreshDB]);
 
   const defaultDBName = useCallback(() => {
     const base = (prompt || 'Canvas').trim().slice(0, 20) || 'Canvas';
@@ -167,39 +177,61 @@ export default function useCanvasPage() {
 
   const handleSaveDB = useCallback(async () => {
     setSavingDB(true);
-    try {
-      const dataUrl = getSaveDataURL();
-      if (!dataUrl) throw new Error('no image');
-      const name = (window.prompt?.('저장할 이름(프로젝트/파일명)', defaultDBName()) || '').trim();
-      if (!name) { setSavingDB(false); return; }      
-      // name, draft << 데이터베이스에 저장
-      const draft = await saveNow();
-      const userNo = getUserNo()
-      
-      FastAPI("PUT", "/canvas", {userNo, name, draft})
-      .then(res => {
-        console.log(res)
-      })
+    // const dataUrl = getSaveDataURL();
+    // if (!dataUrl) throw new Error('no image');
+    const name = (window.prompt?.('저장할 이름(프로젝트/파일명)', defaultDBName()) || '').trim();
+    if (!name) { setSavingDB(false); return; }
 
+    // userNo, name, draft << 데이터베이스에 저장
+    const userNo = getUserNo();
+    const draft = await saveNow();
+    
+    FastAPI("PUT", "/canvas", {userNo, name, draft})
+    .then(res => {
+      if(res.status) {
+        setToast({ type: 'ok', msg: 'DB(모의) 저장 완료' });
+      } else {
+        setToast({ type: 'err', msg: 'DB(모의) 저장 실패' });
+      }
+      setSavingDB(false);
+    });
+
+    // try {
       // mockdb.save({
       //   name,
       //   imageDataURL: dataUrl,
       //   meta: { tool, size, aspect, prompt, model, draftId, stroke, fill, strokeWidth, brushColor: color },
       // });
       // refreshDB();
-      setToast({ type: 'ok', msg: 'DB(모의) 저장 완료' });
-    } catch {
-      setToast({ type: 'err', msg: 'DB(모의) 저장 실패' });
-    } finally {
-      setSavingDB(false);
-    }
+      
+    // } catch {
+    //   setToast({ type: 'err', msg: 'DB(모의) 저장 실패' });
+    // } finally {
+    //   setSavingDB(false);
+    // }
   }, [getSaveDataURL, defaultDBName, tool, size, aspect, prompt, model, draftId, stroke, fill, strokeWidth, color, refreshDB]);
 
-  const handleLoadFromDB = useCallback((id) => {
+  const decode = (param) => {
+    return decodeURIComponent(window.atob(param))
+  }
+
+  const handleLoadFromDB = useCallback((item) => {
     try {
+      if (item.draft) {
+        const onDraft = JSON.parse(decode(item.draft));  
+        if (onDraft.imageDataURL) loadFromDataURL(onDraft.imageDataURL);
+        const m = onDraft.meta || {};
+        if (m.stroke) setStroke(m.stroke);
+        if (m.fill) setFill(m.fill);
+        if (m.strokeWidth) setStrokeWidth(m.strokeWidth);
+        if (m.brushColor) setColor(m.brushColor);
+        setToast({ type: 'ok', msg: `"${item.name}" 불러오기 완료` });
+        setDbOpen(false);
+      } else {
+        setToast({ type: 'err', msg: '항목을 찾을 수 없습니다.' });
+      }
 
       // const rec = mockdb.get(id);
-
       // 데이터베이스의 값 비교 작업 필요
       // if (!rec) { setToast({ type: 'err', msg: '항목을 찾을 수 없습니다.' }); return; }
       // if (rec.imageDataURL) loadFromDataURL(rec.imageDataURL);
@@ -212,8 +244,8 @@ export default function useCanvasPage() {
       // if (m.fill) setFill(m.fill);
       // if (m.strokeWidth) setStrokeWidth(m.strokeWidth);
       // if (m.brushColor) setColor(m.brushColor);
-      setToast({ type: 'ok', msg: `"${rec.name || '(무제)'}" 불러오기 완료` });
-      setDbOpen(false);
+      // setToast({ type: 'ok', msg: `"${rec.name || '(무제)'}" 불러오기 완료` });
+      // setDbOpen(false);
     } catch {
       setToast({ type: 'err', msg: '로드 중 오류가 발생했습니다.' });
     }

@@ -131,16 +131,16 @@ export default function ToolsSidebar({
             {(!dbItems || dbItems.length===0) && (
               <div className="db-empty">저장된 항목이 없습니다.</div>
             )}
-            {dbItems && dbItems.map(item => (
+            {dbItems?.map(item => (
               <button
-                key={item.id}
+                key={item.no}
                 className="db-item"
                 role="listitem"
-                title={fmt(item.createdAt)}
-                onClick={()=>onLoadDB?.(item.id)}
+                title={fmt(item.regDate)}
+                onClick={()=>onLoadDB?.(item)}
               >
                 <span className="name">{item.name}</span>
-                <span className="meta">{fmt(item.createdAt)}</span>
+                <span className="meta">{fmt(item.regDate)}</span>
               </button>
             ))}
           </div>

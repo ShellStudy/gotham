@@ -149,7 +149,7 @@ function saveToLS(doc) {
     id,
     imageDataURL: doc.imageDataURL || '',
     prompt: typeof doc.prompt === 'string' ? doc.prompt : '',
-    model: doc.model || 'img2img_real',
+    model: doc.model || 0,
     meta: { ...(doc.meta || {}) },
     createdAt: existing?.createdAt || doc.createdAt || now,
     updatedAt: now,
@@ -214,6 +214,11 @@ function clearDraft() {
 /** 현재 캔버스를 저장 (캔버스 라우트에서만 실제 저장; 그 외 null 반환) */
 export async function saveDraft({ id, imageDataURL, prompt, model, meta = {} }) {
   return saveToLS({ id, imageDataURL, prompt, model, meta });
+}
+
+export function getDraft(item) {
+  if (!item) return null;
+
 }
 
 /** 특정 드래프트 로드 */

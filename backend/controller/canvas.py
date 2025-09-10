@@ -19,7 +19,7 @@ def findAll(no: int):
     cur = conn.cursor()
     
     sql = f'''
-          SELECT `no`, `name`, `draft`
+          SELECT `no`, `name`, `draft`, `regDate`
             FROM gotham.`canvas`
           WHERE useYn = 'Y'
             AND regUserNo = {no}
