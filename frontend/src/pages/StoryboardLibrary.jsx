@@ -227,15 +227,21 @@ const StoryboardLibrary = () => {
 
   // 새로 만들기
   const onQuickAdd = () => {
-    const title = window.prompt('스토리보드 제목을 입력하세요', '');
-    if (title == null) return;
-    const tagLine = window.prompt('메모/태그를 쉼표로 구분해 입력 (예: #영화,#코믹,#작업중)', '#영화,#코믹,#작업중');
-    FastAPI("PUT", "/storyboard", {title, "tag": tagLine, "regUserNo": getUserNo()})
-    .then(res => {
-      if(res.status) {
-        location.reload()
+    const d = new Date();
+    const p = (n) => String(n).padStart(2,'0');
+    const placeholder = `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`;
+    const title = window.prompt('스토리보드 제목을 입력하세요', placeholder);
+    if (title) {
+      const tagLine = window.prompt('메모/태그를 쉼표로 구분해 입력 (예: #영화,#코믹,#작업중)', '#영화,#코믹,#작업중');
+      if (tagLine!==null) {
+        FastAPI("PUT", "/storyboard", {title, "tag": tagLine, "regUserNo": getUserNo()})
+        .then(res => {
+          if(res.status) {
+            location.reload();
+          }
+        });
       }
-    })
+    }
   };
 
   useEffect(()=>{

@@ -1,361 +1,261 @@
-// src/pages/StoryboardWorkspace.jsx
-import { useEffect, useMemo, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import Button from 'react-bootstrap/Button';
-import Modal from 'react-bootstrap/Modal';
 import Form from 'react-bootstrap/Form';
 import ImagePickerModal from '@/components/Common/ImagePickerModal.jsx';
-import { getStoryboard, ensureScenes, updateScene, clearScene } from '@/services/data/storyboards.js';
-import { FastAPI } from '@/services/network/NetWork.js'
+import { useRoot } from '@/services/core/RootProvider.jsx';
+import { FastAPI } from '@/services/network/Network.js';
 
-const StoryboardWorkspace2 = () => {
+export default function StoryboardWorkspace() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { getBoardFile } = useRoot();
 
-  const [sb, setSb] = useState(null);
-  const [index, setIndex] = useState(0); // 0-based
-  const [showMemo, setShowMemo] = useState(false);
-  const [memoDraft, setMemoDraft] = useState('');
-  const [showPicker, setShowPicker] = useState(false);
-
-  // 불러오기 & 씬 보장
-  const load = useCallback(() => {
-    const updated = ensureScenes(id, 6);
-    setSb(updated || getStoryboard(id));
-  }, [id]);
-
-  useEffect(() => {
-    load();
-    setIndex(0);
-  }, [load]);
-
-  const scenes = useMemo(() => (sb?.scenes || []).slice(0, 6), [sb]);
-  const total = scenes.length || 0;
-  const current = scenes[index];
-
-  const canPrev = index > 0;
-  const canNext = index < total - 1;
-
-  const goPrev = useCallback(() => { if (canPrev) setIndex(i => i - 1); }, [canPrev]);
-  const goNext = useCallback(() => { if (canNext) setIndex(i => i + 1); }, [canNext]);
-
-  // 키보드 ← / →
-  useEffect(() => {
-    const onKey = (e) => {
-      if (e.key === 'ArrowLeft') { e.preventDefault(); goPrev(); }
-      if (e.key === 'ArrowRight') { e.preventDefault(); goNext(); }
-    };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, [goPrev, goNext]);
-
-  // 메모 편집
-  const openMemo = () => {
-    setMemoDraft(current?.note || '');
-    setShowMemo(true);
-  };
-  const saveMemo = async () => {
-    await updateScene(id, current.no, { note: memoDraft });
-    setShowMemo(false);
-    load();
-  };
-
-  // 이미지 선택
-  const openPicker = () => setShowPicker(true);
-  const selectImage = async (url) => {
-    await updateScene(id, current.no, { image: url });
-    setShowPicker(false);
-    load();
-  };
-
-  // 씬 삭제(초기화)
-  const deleteScene = async () => {
-    const ok = window.confirm('이 씬의 이미지/메모를 삭제하시겠습니까?');
-    if (!ok) return;
-    await clearScene(id, current.no);
-    load();
-  };
-
-  // 🔸 저장 버튼 핸들러
-  const handleSave = useCallback(async () => {
-    const ok = window.confirm('스토리보드를 저장하시겠습니까?');
-    if (!ok) return;
-
-    // ⚠️ 현재 구조에선 updateScene 호출 시 즉시 저장됨.
-    // 별도 커밋 로직이 있다면 여기에서 호출:
-    // await saveStoryboard(id);
-
-    window.alert('저장되었습니다.');
-  }, [id]);
-
-  // 아이콘 (충돌 방지용 인라인 SVG)
-  const IconTrash = ({ size=22 }) => (
-    <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden="true">
-      <path d="M9 3h6l1 2h4v2H4V5h4l1-2zm1 6h2v9h-2V9zm4 0h2v9h-2V9zM7 9h2v9H7V9z" fill="currentColor"/>
-    </svg>
-  );
-  const IconPencil = ({ size=22 }) => (
-    <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden="true">
-      <path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04a1.003 1.003 0 0 0 0-1.42l-2.34-2.34a1.003 1.003 0 0 0-1.42 0l-1.83 1.83 3.75 3.75 1.84-1.82z" fill="currentColor"/>
-    </svg>
-  );
-
-  if (!sb) {
-    return (
-      <main className="sbw-page">
-        <div className="container py-4">
-          <p>스토리보드를 찾을 수 없습니다.</p>
-          <button className="btn btn-secondary" onClick={() => navigate('/storyboards')}>← 돌아가기</button>
-        </div>
-      </main>
-    );
-  }
-
-  return (
-    <main className="sbw-page" aria-label="스토리보드 작업공간">
-      <div className="container-fluid sbw-container">
-        {/* 상단 바 */}
-        <header className="sbw-bar">
-          <button
-            className="btn btn-link p-0 sbw-back"
-            onClick={() => navigate('/storyboards')}
-            aria-label="라이브러리로 돌아가기"
-          >
-            ←
-          </button>
-
-          <h3 className="sbw-title m-0" title={sb.title}>{sb.title}</h3>
-
-          {/* 🔸 메타 + 저장 버튼 (우측 정렬) */}
-          <div className="sbw-right">
-            <div className="sbw-meta" aria-live="polite">{index + 1} / {total}</div>
-            <Button
-              variant="success"
-              size="sm"
-              className="sbw-save"
-              onClick={handleSave}
-              aria-label="스토리보드 저장"
-              title="스토리보드 저장"
-            >
-              저장
-            </Button>
-          </div>
-        </header>
-
-        {/* 스테이지 (좌/우 네비게이션을 캔버스 “밖”으로) */}
-        <section className="sbw-stage" aria-live="polite">
-          <button
-            type="button"
-            className="sbw-nav sbw-nav-left"
-            onClick={goPrev}
-            disabled={!canPrev}
-            aria-label="이전 씬"
-            title="이전 씬"
-          >
-            <span aria-hidden="true">‹</span>
-          </button>
-
-          <div className="sbw-canvas-wrap">
-            <div
-              className="sbw-canvas"
-              role="button"
-              tabIndex={0}
-              aria-label={`씬 ${current?.no} 클릭하여 이미지 선택`}
-              title="클릭하여 이미지 선택"
-              onClick={openPicker}
-              onKeyDown={(e)=>{ if(e.key==='Enter' || e.key===' '){ e.preventDefault(); openPicker(); }}}
-            >
-              {current?.image ? (
-                <img src={current.image} alt="" className="sbw-canvas-img" />
-              ) : (
-                <div className="sbw-canvas-placeholder">{`씬 ${current?.no}`}</div>
-              )}
-
-              {/* 우상단 삭제 */}
-              <button
-                type="button"
-                className="sbw-fab sbw-fab-delete"
-                onClick={(e)=>{ e.stopPropagation(); deleteScene(); }}
-                aria-label="씬 삭제"
-                title="씬 삭제"
-              >
-                <IconTrash size={22}/>
-              </button>
-
-              {/* 좌하단 메모 */}
-              <button
-                type="button"
-                className="sbw-fab sbw-fab-memo"
-                onClick={(e)=>{ e.stopPropagation(); openMemo(); }}
-                aria-label="메모 작성/수정"
-                title="메모 작성/수정"
-              >
-                <IconPencil size={22}/>
-              </button>
-            </div>
-          </div>
-
-          <button
-            type="button"
-            className="sbw-nav sbw-nav-right"
-            onClick={goNext}
-            disabled={!canNext}
-            aria-label="다음 씬"
-            title="다음 씬"
-          >
-            <span aria-hidden="true">›</span>
-          </button>
-        </section>
-
-        {/* 하단 썸네일 스트립 */}
-        <section className="sbw-strip" aria-label="씬 바로가기">
-          {scenes.map((s, i) => (
-            <button
-              key={s.no}
-              className={`sbw-thumb ${i===index ? 'is-active' : ''}`}
-              onClick={() => setIndex(i)}
-              aria-label={`씬 ${s.no}로 이동`}
-              title={`씬 ${s.no}`}
-            >
-              <div className="sbw-thumb-box">
-                {s.image
-                  ? <img src={s.image} alt="" className="w-100 h-100 object-fit-cover" />
-                  : <span className="sbw-thumb-no">{s.no}</span>}
-              </div>
-              <div className="sbw-thumb-meta">
-                <span className="sbw-thumb-title">{s.title || `씬 ${s.no}`}</span>
-                {s.note && <span className="sbw-thumb-note" title={s.note}>{s.note}</span>}
-              </div>
-            </button>
-          ))}
-        </section>
-      </div>
-
-      {/* 메모 모달 */}
-      <Modal show={showMemo} onHide={()=>setShowMemo(false)} centered>
-        <Modal.Header closeButton><Modal.Title>메모 수정 – 씬 {current?.no}</Modal.Title></Modal.Header>
-        <Modal.Body>
-          <Form.Group>
-            <Form.Label>메모</Form.Label>
-            <Form.Control
-              as="textarea"
-              rows={5}
-              value={memoDraft}
-              onChange={e=>setMemoDraft(e.target.value)}
-              placeholder="이 씬에 대한 메모를 입력하세요"
-            />
-          </Form.Group>
-        </Modal.Body>
-        <Modal.Footer>
-          <Button variant="secondary" onClick={()=>setShowMemo(false)}>취소</Button>
-          <Button variant="primary" onClick={saveMemo}>저장</Button>
-        </Modal.Footer>
-      </Modal>
-
-      {/* 이미지 픽커 모달: 큰 화면 클릭과 동일 동작 */}
-      <ImagePickerModal
-        show={showPicker}
-        onClose={()=>setShowPicker(false)}
-        onSelect={selectImage}
-      />
-    </main>
-  );
-}
-
-const StoryboardWorkspace = () => {
-  const { id } = useParams();
-  const navigate = useNavigate();
+  // ---------- state ----------
   const [sb, setSb] = useState(null);
   const [scenes, setScenes] = useState([]);
-  const [current, setCurrent] = useState([]);
-  const [index, setIndex] = useState(0); // 0-based
-  const [showMemo, setShowMemo] = useState(false);
-  const [memoDraft, setMemoDraft] = useState('');
-  const [showPicker, setShowPicker] = useState(false);
+  const [current, setCurrent] = useState(null);
+  const [index, setIndex] = useState(0);
   const [total, setTotal] = useState(0);
-  const canPrev = index > 0;
-  const canNext = index < total - 1;
-  const goPrev = useCallback(() => { if (canPrev) setIndex(i => i - 1); }, [canPrev]);
-  const goNext = useCallback(() => { if (canNext) setIndex(i => i + 1); }, [canNext]);
-  
-  const baseUrl1 = import.meta.env.VITE_APP_GATEWAY_URL || 'http://localhost:7000';
-  const getFile = (fileNo) =>  (fileNo == 0) ? null : baseUrl1 + "/oauth/file/u/" + fileNo;
 
-  // 불러오기 & 씬 보장
-  const load = useCallback(() => { if(scenes.length > 0) setCurrent(scenes[index]) }, [id, index]);
-  
-  // 씬 삭제(초기화)
-  const deleteScene = async () => {
-    const ok = window.confirm('이 씬의 이미지/메모를 삭제하시겠습니까?');
-    if (!ok) return;
-    setScenes(data => data.map(row => row.no === current.no ? {...row, fileNo: 0, caption: ""} : row))
-    // await clearScene(id, current.no);
-    // load();
+  const [showPicker, setShowPicker] = useState(false);
+
+  // 자막(메모) 오버레이
+  const [showSubtitle, setShowSubtitle] = useState(true);
+  const [isEditingSubtitle, setIsEditingSubtitle] = useState(false);
+
+  // 삭제 모드 & 선택 상태
+  const [isDeleteMode, setIsDeleteMode] = useState(false);
+  const [selectedIds, setSelectedIds] = useState(() => new Set());
+
+  // 자막 편집용 refs (언컨트롤드)
+  const subtitleRef = useRef(null);
+  const subtitleBeforeEditRef = useRef('');
+  const isComposingRef = useRef(false);
+
+  // ---------- utils ----------
+  // const sceneIdOf = (scene, idx) => (scene?.no != null ? `no:${scene.no}` : `idx:${idx}`);
+  const sceneIdOf = (scene, idx) => (scene?.no != null ? scene.no : idx);
+  const isSelected = (id) => selectedIds.has(id);
+  const toggleSelect = (id) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
   };
 
-  // 🔸 저장 버튼 핸들러
-  const handleSave = useCallback(async () => {
-    const ok = window.confirm('스토리보드를 저장하시겠습니까?');
-    if (!ok) return;
+  const canPrev = index > 0;
+  const canNext = index < Math.max(0, total - 1);
 
-    // ⚠️ 현재 구조에선 updateScene 호출 시 즉시 저장됨.
-    // 별도 커밋 로직이 있다면 여기에서 호출:
-    // await saveStoryboard(id);
-
-    window.alert('저장되었습니다.');
+  // ---------- fetch ----------
+  useEffect(() => {
+    FastAPI('POST', `/storyboard/${id}`, {})
+      .then((res) => {
+        if (!res?.status) return;
+        const board = res.result?.story_board;
+        const list = res.result?.story_board_detail;
+        setSb(board);
+        setScenes(list);
+        setTotal(list.length || 0);
+        setIndex(0);
+        setCurrent(list[0] || null);
+      })
+      .catch((e) => console.error(e));
   }, [id]);
 
-  // 아이콘 (충돌 방지용 인라인 SVG)
-  const IconTrash = ({ size=22 }) => (
-    <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden="true">
-      <path d="M9 3h6l1 2h4v2H4V5h4l1-2zm1 6h2v9h-2V9zm4 0h2v9h-2V9zM7 9h2v9H7V9z" fill="currentColor"/>
-    </svg>
-  );
-  const IconPencil = ({ size=22 }) => (
-    <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden="true">
-      <path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04a1.003 1.003 0 0 0 0-1.42l-2.34-2.34a1.003 1.003 0 0 0-1.42 0l-1.83 1.83 3.75 3.75 1.84-1.82z" fill="currentColor"/>
-    </svg>
-  );
+  // index → current 반영 + 자막 DOM 초기화(언컨트롤드)
+  useEffect(() => {
+    if (scenes.length > 0) {
+      const cur = scenes[index] || null;
+      setCurrent(cur);
+      subtitleBeforeEditRef.current = cur?.caption || '';
+      if (subtitleRef.current) {
+        subtitleRef.current.value = cur?.caption || '';
+      }
+      setIsEditingSubtitle(false);
+    } else {
+      setCurrent(null);
+      subtitleBeforeEditRef.current = '';
+      if (subtitleRef.current) subtitleRef.current.value = '';
+      setIsEditingSubtitle(false);
+    }
+  }, [index, scenes]);
 
-  // 메모 편집
-  const openMemo = () => {
-    setMemoDraft(current?.caption || '');
-    setShowMemo(true);
-  };
-  const saveMemo = async () => {
-    setScenes(data => data.map(row => row.no === current.no ? {...row, ["caption"]: memoDraft} : row))
-    setShowMemo(false);
+  // 자막 토글 ON 시 현재 캡션을 contentEditable에 주입(placeholder 방지)
+  useEffect(() => {
+    if (!showSubtitle) return;
+    const el = subtitleRef.current;
+    const value = current?.caption || '';
+    subtitleBeforeEditRef.current = value;
+    if (el) el.value = value;
+    setIsEditingSubtitle(false);
+  }, [showSubtitle, current]);
+
+  // ---------- nav ----------
+  const goPrev = useCallback(() => { if (canPrev) setIndex((i) => i - 1); }, [canPrev]);
+  const goNext = useCallback(() => { if (canNext) setIndex((i) => i + 1); }, [canNext]);
+
+  // ---------- delete mode ----------
+  const toggleDeleteMode = () => {
+    setIsDeleteMode((on) => {
+      if (on) setSelectedIds(new Set()); // 끌 때 선택 해제
+      return !on;
+    });
   };
 
-  // 이미지 선택
-  const openPicker = () => setShowPicker(true);
-  const selectImage = async (url) => {
-    // await updateScene(id, current.no, { image: url });
-    // setShowPicker(false);
+  const handleBulkDelete = () => {
+    if (selectedIds.size === 0) return;
+    const ok = window.confirm(`선택한 ${selectedIds.size}개 씬의 이미지/메모를 삭제할까요?`);
+    if (!ok) return;
+
+    const storyboards = Array.from(selectedIds).join(",");
+    FastAPI("DELETE", `/storyboard/detail`, { "no": id, storyboards })
+    .then(res => {
+      if (res?.status) {
+        const board = res.result?.story_board;
+        const list = res.result?.story_board_detail;
+        setSb(board);
+        setScenes(list);
+        setTotal(list.length || 0);
+        setIndex(0);
+        setCurrent(list[0] || null);
+      }
+      setSelectedIds(new Set());
+      setIsDeleteMode(false);
+    });
+  };
+
+  // 기존 개별 삭제 FAB는 "삭제 모드 토글"로 변경
+  const onTrashFabClick = (e) => {
+    // e.stopPropagation();
+    toggleDeleteMode();
+  };
+
+  // ---------- save ----------
+  const handleSave = useCallback(() => {
+    // ⚠️ 백엔드 통신부 미변경 (기존 저장 경로 사용)
+    // window.alert('저장되었습니다.');
+    FastAPI("PUT","/storyboard/detail", {"storyboards": JSON.stringify(scenes)})
+    .then(res => {
+      if(res?.status) window.alert('저장되었습니다.');
+    })
+  }, [scenes]);
+
+  // ---------- image picker ----------
+  const openPicker = () => {
+    if (isDeleteMode) return;
+    setShowPicker(true);
+  };
+  const selectImage = (item) => {
+    if (!current || !item) return;
+    setScenes((list) =>
+      list.map((row) => {
+        if (row.no !== current.no) return row;
+        const next = { ...row };
+        if (item.fileNo != null) next.fileNo = item.fileNo;
+        if (item.attachPath) next.attachPath = item.attachPath;
+        return next;
+      })
+    );
+    setShowPicker(false);
+  };
+
+  // ---------- subtitle editing (언컨트롤드) ----------
+  const commitSubtitle = useCallback(() => {
+    if (!current || !subtitleRef.current) return;
+    const val = subtitleRef.current.value ?? '';
+    if (val !== (current.caption || '')) {
+      setScenes((list) =>
+        list.map((row) =>
+          row.no === current.no ? { ...row, caption: val } : row
+        )
+      );
+    }
+    subtitleBeforeEditRef.current = val;
+    setIsEditingSubtitle(false);
+  }, [current]);
+
+  const revertSubtitle = useCallback(() => {
+    if (!subtitleRef.current) return;
+    subtitleRef.current.value = subtitleBeforeEditRef.current || '';
+    setIsEditingSubtitle(false);
+  }, []);
+
+  const onSubtitleKeyDown = (e) => {
+    if (isComposingRef.current) return; // IME 조합 중엔 단축키 금지
+
+    const isCmdOrCtrl = e.metaKey || e.ctrlKey;
+    if (isCmdOrCtrl && e.key === 'Enter') {
+      e.preventDefault();
+      commitSubtitle();
+      subtitleRef.current?.blur();
+      return;
+    }
+    if (e.key === 'Escape') {
+      e.preventDefault();
+      revertSubtitle();
+      subtitleRef.current?.blur();
+      return;
+    }
+    e.stopPropagation(); // 캔버스 이벤트 전파 방지
+  };
+
+  const onSubtitleFocus = () => {
+    setIsEditingSubtitle(true);
+    requestAnimationFrame(() => {
+      const el = subtitleRef.current;
+      if (!el) return;
+      const sel = window.getSelection();
+      const range = document.createRange();
+      range.selectNodeContents(el);
+      range.collapse(false);
+      sel.removeAllRanges();
+      sel.addRange(range);
+    });
+  };
+
+  const onCompositionStart = () => { isComposingRef.current = true; };
+  const onCompositionEnd = () => { isComposingRef.current = false; };
+
+  // 토글 핸들러: OFF 직전 현재 입력값 임시 보관, ON은 useEffect가 복원
+  const onToggleSubtitle = (checked) => {
+    if (!checked) {
+      const el = subtitleRef.current;
+      if (el) {
+        subtitleBeforeEditRef.current = el.textContent ?? subtitleBeforeEditRef.current;
+      }
+    }
+    setShowSubtitle(checked);
   };
   
-  useEffect(()=>{
-    load()
-  }, [index])
+  useEffect(() => {
+  const opts = { capture: true }; // 다른 핸들러보다 먼저 선점
+  const onGlobalKey = (e) => {
+    // 1) 모달 열림/자막 편집/한글 조합 중이면 무시
+    if (showPicker || isEditingSubtitle || isComposingRef.current) return;
 
-  useEffect(()=>{
-    setCurrent(scenes[index])
-  }, [scenes])
+    // 2) 폼/편집 가능한 요소 포커스 시 무시
+    const t = e.target;
+    if (t?.isContentEditable) return;
+    const tag = t?.tagName?.toLowerCase?.() || '';
+    if (tag === 'input' || tag === 'textarea' || tag === 'select' || tag === 'button') return;
 
-  useEffect(()=>{
-    FastAPI("POST", `/storyboard/${id}`, {})
-    .then(res => {
-      if(res.status) {
-        setSb(res.result.story_board)
-        setScenes(res.result.story_board_detail)
-        if(res.result.story_board_detail.length > 0)
-        setCurrent(res.result.story_board_detail[0])
-        setIndex(0)
-        setTotal(res.result.story_board_detail.length)
-      }
-    })
-  }, [])
+    // 3) 좌우 이동
+    if (e.key === 'ArrowLeft') {
+      e.preventDefault();
+      goPrev();
+    } else if (e.key === 'ArrowRight') {
+      e.preventDefault();
+      goNext();
+    }
+  };
 
+  window.addEventListener('keydown', onGlobalKey, opts);
+  return () => window.removeEventListener('keydown', onGlobalKey, opts);
+}, [goPrev, goNext, showPicker, isEditingSubtitle]);
+  // ---------- render guards ----------
   if (!sb) {
     return (
       <main className="sbw-page">
@@ -367,10 +267,21 @@ const StoryboardWorkspace = () => {
     );
   }
 
+  const currentId = sceneIdOf(current, index);
+
+  const subTitleEvent = (e) => {
+    setScenes((list) =>
+      list.map(row => {
+        if (row.no === current.no) return {...row, caption: e.target.value};
+        return row;
+      })
+    );
+  }
+
   return (
     <main className="sbw-page" aria-label="스토리보드 작업공간">
       <div className="container-fluid sbw-container">
-        {/* 상단 바 */}
+        {/* top bar */}
         <header className="sbw-bar">
           <button
             className="btn btn-link p-0 sbw-back"
@@ -380,11 +291,11 @@ const StoryboardWorkspace = () => {
             ←
           </button>
 
-          <h3 className="sbw-title m-0" title={sb.title}>{sb.title}</h3>
+          <h3 className="sbw-title m-0" title={sb.title || 'Storyboard'}>{sb.title || 'Storyboard'}</h3>
 
-          {/* 🔸 메타 + 저장 버튼 (우측 정렬) */}
           <div className="sbw-right">
             <div className="sbw-meta" aria-live="polite">{index + 1} / {total}</div>
+            
             <Button
               variant="success"
               size="sm"
@@ -398,12 +309,12 @@ const StoryboardWorkspace = () => {
           </div>
         </header>
 
-        {/* 스테이지 (좌/우 네비게이션을 캔버스 “밖”으로) */}
+        {/* stage: outside nav columns */}
         <section className="sbw-stage" aria-live="polite">
           <button
             type="button"
             className="sbw-nav sbw-nav-left"
-            onClick={goPrev}
+            onClick={(e) => { e.stopPropagation(); goPrev(); }}
             disabled={!canPrev}
             aria-label="이전 씬"
             title="이전 씬"
@@ -414,47 +325,180 @@ const StoryboardWorkspace = () => {
           <div className="sbw-canvas-wrap">
             <div
               className="sbw-canvas"
-              role="button"
+              role={isDeleteMode ? 'group' : 'button'}
               tabIndex={0}
-              aria-label={`씬 ${current?.no} 클릭하여 이미지 선택`}
-              title="클릭하여 이미지 선택"
-              onClick={openPicker}
-              onKeyDown={(e)=>{ if(e.key==='Enter' || e.key===' '){ e.preventDefault(); openPicker(); }}}
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                if (isDeleteMode) {
+                  toggleSelect(currentId);
+                } else {
+                  openPicker();
+                }
+              }}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  if (!isDeleteMode) openPicker();
+                }
+                if (e.key === 'ArrowLeft') { e.preventDefault(); goPrev(); }
+                if (e.key === 'ArrowRight') { e.preventDefault(); goNext(); }
+              }}
+              aria-label={isDeleteMode ? '삭제 모드: 현재 씬 선택/해제' : '이미지 선택/변경'}
             >
-              {current?.fileNo ? (
-                <img src={getFile(current.fileNo)} alt="" className="sbw-canvas-img" />
+              {current.attachPath ? (
+                <img src={getBoardFile(current.attachPath)} alt="" className="sbw-canvas-img" />
               ) : (
-                <div className="sbw-canvas-placeholder">{`씬 ${current?.order}`}</div>
+                <div className="sbw-canvas-placeholder">{`씬 ${current?.order ?? current?.no ?? ''}`}</div>
               )}
 
-              {/* 우상단 삭제 */}
-              <button
+              {/* 삭제 모드용 체크박스 (캔버스 상단 좌측) */}
+              {
+              // isDeleteMode && (
+              //   <label
+              //     className="form-check sbw-selectbox"
+              //     onClick={(e) => e.stopPropagation()}
+              //   >
+              //     <input
+              //       type="checkbox"
+              //       className="form-check-input"
+              //       checked={isSelected(currentId)}
+              //       onChange={() => toggleSelect(currentId)}
+              //       aria-checked={isSelected(currentId)}
+              //       aria-label="현재 씬 선택"
+              //     />
+              //   </label>
+              // )
+              }
+              {/* FABs */}
+              {/* <button
                 type="button"
                 className="sbw-fab sbw-fab-delete"
-                onClick={(e)=>{ e.stopPropagation(); deleteScene(); }}
-                aria-label="씬 삭제"
-                title="씬 삭제"
+                onClick={onTrashFabClick}
+                aria-label={isDeleteMode ? '삭제 모드 종료' : '삭제 모드 활성화'}
+                title={isDeleteMode ? '삭제 모드 종료' : '삭제 모드 활성화'}
               >
-                <IconTrash size={22}/>
-              </button>
+                <IconTrash size={22} />
+              </button> */}
 
-              {/* 좌하단 메모 */}
-              <button
-                type="button"
-                className="sbw-fab sbw-fab-memo"
-                onClick={(e)=>{ e.stopPropagation(); openMemo(); }}
-                aria-label="메모 작성/수정"
-                title="메모 작성/수정"
+              {/* {!isDeleteMode && (
+                <button
+                  type="button"
+                  className="sbw-fab sbw-fab-memo"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setShowSubtitle(true);
+                    requestAnimationFrame(() => {
+                      const el = subtitleRef.current;
+                      if (!el) return;
+                      el.focus();
+                      const sel = window.getSelection();
+                      const range = document.createRange();
+                      range.selectNodeContents(el);
+                      range.collapse(false);
+                      sel.removeAllRanges();
+                      sel.addRange(range);
+                      setIsEditingSubtitle(true);
+                    });
+                  }}
+                  aria-label="자막 편집"
+                  title="자막 편집"
+                >
+                  <IconPencil size={22} />
+                </button>
+              )} */}
+            </div>
+
+            {/* FABs */}
+            <button
+              type="button"
+              className="sbw-fab sbw-fab-delete"
+              onClick={onTrashFabClick}
+              aria-label={isDeleteMode ? '삭제 모드 종료' : '삭제 모드 활성화'}
+              title={isDeleteMode ? '삭제 모드 종료' : '삭제 모드 활성화'}
+              disabled={isDeleteMode}
+            >
+              <IconTrash size={22} />
+            </button>
+
+            {/* 자막 오버레이 (삭제 모드에서는 편집 비활성화) */}
+            {showSubtitle && !isDeleteMode && (
+              <div
+                className="sbw-subtitle sbw-submemo"
+                // onMouseDown={(e) => e.stopPropagation()}
+                // onClick={(e) => e.stopPropagation()}
               >
-                <IconPencil size={22}/>
-              </button>
+                <textarea ref={subtitleRef} onChange={subTitleEvent} type='text' className={`sbw-subtitle-edit ${isEditingSubtitle ? ' is-editing' : ''}`} placeholder="자막(메모)을 입력하세요"></textarea>
+
+                {/* <div
+                  ref={subtitleRef}
+                  className={`sbw-subtitle-edit${isEditingSubtitle ? ' is-editing' : ''}`}
+                  contentEditable
+                  suppressContentEditableWarning
+                  role="textbox"
+                  aria-multiline="true"
+                  aria-label="자막(메모) 입력"
+                  data-placeholder="자막(메모)을 입력하세요" // (Ctrl/Cmd + Enter 저장, Esc 취소)
+                  onKeyDown={onSubtitleKeyDown}
+                  onFocus={onSubtitleFocus}
+                  onBlur={commitSubtitle}
+                  onCompositionStart={onCompositionStart}
+                  onCompositionEnd={onCompositionEnd}
+                  spellCheck={false}
+                /> */}
+              </div>
+            )}
+
+            {/* tools / hints */}
+            <div className="sbw-tools">
+              <small className="text-muted">
+                {isDeleteMode
+                  ? '썸네일 또는 캔버스 좌측 체크박스로 씬을 선택하세요.'
+                  : '캔버스를 클릭하면 이미지 선택(목록) 창이 열립니다.'}
+              </small>
+
+              <Form.Check
+                type="switch"
+                id="sbwToggleSubtitle"
+                label="자막 표시"
+                className="ms-2"
+                checked={showSubtitle}
+                onChange={(e) => onToggleSubtitle(e.target.checked)}
+                disabled={isDeleteMode}
+                title={isDeleteMode ? '삭제 모드에서는 비활성화' : ''}
+              />
+
+              {isDeleteMode && (
+                <div className="ms-2 d-flex align-items-center" aria-live="polite">
+                  <span className="text-muted">
+                    선택됨: <b>{selectedIds.size}</b> / {total}
+                  </span>
+                  <Button
+                    variant="danger"
+                    size="sm"
+                    className="ms-2"
+                    onClick={handleBulkDelete}
+                    disabled={selectedIds.size === 0}
+                  >
+                    선택 삭제
+                  </Button>
+                  <Button
+                    variant="outline-secondary"
+                    size="sm"
+                    className="ms-2"
+                    onClick={() => { setSelectedIds(new Set()); setIsDeleteMode(false); }}
+                  >
+                    취소
+                  </Button>
+                </div>
+              )}
             </div>
           </div>
 
           <button
             type="button"
             className="sbw-nav sbw-nav-right"
-            onClick={goNext}
+            onClick={(e) => { e.stopPropagation(); goNext(); }}
             disabled={!canNext}
             aria-label="다음 씬"
             title="다음 씬"
@@ -463,62 +507,84 @@ const StoryboardWorkspace = () => {
           </button>
         </section>
 
-        {/* 하단 썸네일 스트립 */}
+        {/* bottom thumbnails */}
         <section className="sbw-strip" aria-label="씬 바로가기">
-          {scenes?.map((s, i) => { 
+          {scenes.map((s, i) => {
+            const sid = sceneIdOf(s, i);
+            const selected = isSelected(sid);
             return (
-              <button
-                key={s.no}
-                className='sbw-thumb'
-                // className={`sbw-thumb ${index === i ? 'is-active' : ''}`}
-                onClick={() => setIndex(i)}
-                aria-label={`씬 ${s.order}로 이동`}
-                title={`씬 ${s.order}`}
-              >
-                <div className="sbw-thumb-box">
-                  {s.fileNo
-                    ? <img src={getFile(s.fileNo)} alt="" className="w-100 h-100 object-fit-cover" />
-                    : <span className="sbw-thumb-no">{s.order}</span>}
-                </div>
-                <div className="sbw-thumb-meta">
-                  <span className="sbw-thumb-title">{s.title || `씬 ${s.order}`}</span>
-                  {s.caption && <span className="sbw-thumb-note" title={s.caption}>{s.caption}</span>}
-                </div>
-              </button>
-            )}
-          )}
+              <div style={{position: 'relative'}} key={s.order}>
+                <button                  
+                  className={`sbw-thumb ${i === index ? 'is-active' : ''} ${selected ? 'is-picked' : ''}`}
+                  style={{width: '100%'}}
+                  onClick={(e) => {
+                    // e.stopPropagation();
+                    if (isDeleteMode) {
+                      toggleSelect(sid);
+                    } else {
+                      setIndex(i);
+                    }
+                  }}
+                  aria-pressed={i === index}
+                  aria-label={`${i + 1}번째 씬${isDeleteMode ? (selected ? ' 선택됨' : ' 선택 안 됨') : ''}`}
+                  title={`씬 ${i + 1}`}
+                >
+                  <div className="sbw-thumb-box">
+                    {s.attachPath ? (
+                      <img src={getBoardFile(s.attachPath)} alt="" style={{width: '100%', height: '100%', objectFit: 'cover'}} />
+                    ) : (
+                      <span className="sbw-thumb-no">{s.order ?? s.no ?? i + 1}</span>
+                    )}
+                  </div>
+                  <div className="sbw-thumb-meta">
+                    <div className="sbw-thumb-title">씬 {s.order ?? s.no ?? i + 1}</div>
+                    <div className="sbw-thumb-note">{s.caption || '메모 없음'}</div>
+                  </div>
+                </button>
+                {/* 삭제 모드용 체크박스 오버레이 */}
+                {isDeleteMode && (
+                  <span
+                    className="sbw-thumb-check"
+                    style={{position: 'absolute', top: '5px', left: '5px', display: 'none'}}
+                    // onClick={(e) => e.stopPropagation()}
+                  >
+                    <input
+                      type="checkbox"
+                      className="form-check-input"
+                      checked={selected}
+                      onChange={() => toggleSelect(sid)}
+                      aria-label="씬 선택"
+                    />
+                  </span>
+                )}
+              </div>
+            );
+          })}
         </section>
       </div>
 
-      {/* 메모 모달 */}
-      <Modal show={showMemo} onHide={()=>setShowMemo(false)} centered>
-        <Modal.Header closeButton><Modal.Title>메모 수정 – 씬 {current?.order}</Modal.Title></Modal.Header>
-        <Modal.Body>
-          <Form.Group>
-            <Form.Label>메모</Form.Label>
-            <Form.Control
-              as="textarea"
-              rows={5}
-              value={memoDraft}
-              onChange={e=>setMemoDraft(e.target.value)}
-              placeholder="이 씬에 대한 메모를 입력하세요"
-            />
-          </Form.Group>
-        </Modal.Body>
-        <Modal.Footer>
-          <Button variant="secondary" onClick={()=>setShowMemo(false)}>취소</Button>
-          <Button variant="primary" onClick={saveMemo}>저장</Button>
-        </Modal.Footer>
-      </Modal>
-
-      {/* 이미지 픽커 모달: 큰 화면 클릭과 동일 동작 */}
+      {/* 이미지 선택 모달: 목록형 + X 버튼만 */}
       <ImagePickerModal
         show={showPicker}
-        onClose={()=>setShowPicker(false)}
+        onClose={() => setShowPicker(false)}
         onSelect={selectImage}
       />
     </main>
   );
 }
 
-export default StoryboardWorkspace
+/* ---- inline icons (충돌 방지용) ---- */
+function IconTrash({ size = 22 }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden="true">
+      <path d="M9 3h6l1 2h4v2H4V5h4l1-2zm1 6h2v9h-2V9zm4 0h2v9h-2V9zM7 9h2v9H7V9z" fill="currentColor" />
+    </svg>
+  );
+}
+function IconPencil({ size = 22 }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden="true">
+      <path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.19-.19.29-.44.29-.71 0-.27-.1-.52-.29-.71l-2.34-2.34a1.003 1.003 0 0 0-1.42 0l-1.83 1.83 3.75 3.75 1.83-1.82z" fill="currentColor" />
+    </svg>
+  );
+}

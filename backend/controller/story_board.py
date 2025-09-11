@@ -2,6 +2,7 @@ from fastapi import APIRouter
 from pydantic import BaseModel
 from config.db import getConn
 import mariadb
+import json
 
 route = APIRouter(tags=["스토리 보드"])
 
@@ -22,9 +23,16 @@ class StoryboardDetail(BaseModel):
   fileNo: int
   caption: str
   regUserNo: int
+  
+class StoryboardDetails(BaseModel):
+  storyboards: str
+
+class StoryboardDetailDelete(BaseModel):
+  no: int
+  storyboards: str
 
 @route.post("/storyboard")
-def storyboard(sbq: StoryboardQuery):
+def findAll(sbq: StoryboardQuery):
   try:
     conn = getConn()
     cur = conn.cursor()
@@ -51,15 +59,16 @@ def storyboard(sbq: StoryboardQuery):
     return {"status": False}
     
 @route.post("/storyboard/{no}")
-def storyboard(no: int):
+def findByOne(no: int):
   try:
     conn = getConn()
     cur = conn.cursor()
     
-    sql = '''
+    sql = f'''
           SELECT `no`, `title`, `tag`
             FROM gotham.`story_board`
           WHERE useYn = 'Y'
+            AND `no` = {no}
           ORDER BY `no` DESC
     '''
     cur.execute(sql)
@@ -90,7 +99,7 @@ def storyboard(no: int):
     return {"status": False}
 
 @route.put("/storyboard")
-def storyboard(sb: Storyboard):
+def makeStoryBoard(sb: Storyboard):
   try:
     conn = getConn()
     cur = conn.cursor()
@@ -121,28 +130,8 @@ def storyboard(sb: Storyboard):
     print(f"MariaDB 오류 발생: {e}")
     return {"status": False}
   
-# @route.put("/storyboard/detail")
-# def storyboard(sbd: StoryboardDetail):
-#   try:
-#     conn = getConn()
-#     cur = conn.cursor()
-#     sql = f'''
-#           INSERT INTO gotham.`story_board_detail` 
-#           (`storyBoardNo`, `order`, `fileNo`, `caption`, `useYn`, `regUserNo`)
-#           VALUE 
-#           ({sbd.storyBoardNo}, {sbd.order}, {sbd.fileNo}, '{sbd.caption}', 'Y', {sbd.regUserNo})
-#     '''
-#     cur.execute(sql)
-#     conn.commit()
-#     cur.close()
-#     conn.close()
-#     return {"status": True}
-#   except mariadb.Error as e:
-#     print(f"MariaDB 오류 발생: {e}")
-#     return {"status": False}
-  
 @route.delete("/storyboard")
-def storyboard(sbd: StoryboardDelete):
+def deleteStoryBoard(sbd: StoryboardDelete):
   try:
     conn = getConn()
     cur = conn.cursor()
@@ -164,6 +153,56 @@ def storyboard(sbd: StoryboardDelete):
     cur.close()
     conn.close()
     return {"status": True}
+  except mariadb.Error as e:
+    print(f"MariaDB 오류 발생: {e}")
+    return {"status": False}
+  
+@route.put("/storyboard/detail")
+def editDetail(sbd: StoryboardDetails):
+  try:
+    conn = getConn()
+    cur = conn.cursor()
+    
+    storyBoards = json.loads(sbd.storyboards)
+    for detail in storyBoards:
+      sql = f'''
+            UPDATE gotham.`story_board_detail` 
+              SET fileNo = {detail["fileNo"]},
+                  caption = '{detail["caption"]}'  
+            WHERE `storyBoardNo` = {detail["storyBoardNo"]}
+              AND `no` = {detail["no"]}
+      '''
+      cur.execute(sql)
+      conn.commit()
+    
+    cur.close()
+    conn.close()
+    return {"status": True}
+  except mariadb.Error as e:
+    print(f"MariaDB 오류 발생: {e}")
+    return {"status": False}
+  
+@route.delete("/storyboard/detail")
+def deleteDetail(sbd: StoryboardDetailDelete):
+  try:
+    conn = getConn()
+    cur = conn.cursor()
+    
+    storyBoardNos = sbd.storyboards.split(",")
+    for no in storyBoardNos:
+      sql = f'''
+          UPDATE gotham.`story_board_detail` 
+            SET fileNo = 0,
+                caption = null
+          WHERE `no` = {no}
+      '''
+      cur.execute(sql)
+      conn.commit()
+    cur.close()
+    conn.close()
+    
+    return findByOne(sbd.no)
+    # return {"status": True}
   except mariadb.Error as e:
     print(f"MariaDB 오류 발생: {e}")
     return {"status": False}
