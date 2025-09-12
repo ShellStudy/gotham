@@ -1,6 +1,7 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Depends
 from pydantic import BaseModel
 from config.db import getConn
+from config.token import get_current
 import json
 from urllib import request
 import asyncio
@@ -16,7 +17,6 @@ COMFYUI_URL = os.getenv('COMFYUI_URL')
 route = APIRouter(tags=["이미지 생성"])
 
 class Prompt(BaseModel):
-  no: int
   prompt : str
   init_image: str
   model: int
@@ -31,28 +31,8 @@ aspects = [
   {'width_ratio': 9, 'height_ratio': 16},
 ]
 
-class PromptTest(BaseModel):
-  prompt: str
-  init_image: str
-  model: int
-  aspect: int
-
-@route.post("/gentest")
-def test(promptTest: PromptTest): 
-  now = datetime.now()
-  formatted_date = now.strftime("%Y%m%d")
-  path = f"images/{formatted_date}"
-  if not os.path.exists(path):
-    os.makedirs(path)
-  image_data = base64.b64decode(promptTest.init_image.replace("data:image/png;base64,", ""))
-  file_name = uuid.uuid1().hex
-  file_path = f"{path}/{file_name}.png"
-  with open(file_path, "wb") as f:
-    f.write(image_data)
-  return {"status": True}
-
 @route.post("/gen")
-async def comfyUI(prompt : Prompt):
+async def comfyUI(prompt : Prompt, payload = Depends(get_current)):
   try:  
     # p = "a majestic lion with a crown of stars, photorealistic"
     with open("flow/1.json", "r", encoding="utf-8") as f:
@@ -109,7 +89,7 @@ async def comfyUI(prompt : Prompt):
               INSERT INTO auth.file 
               (`origin`, `name`, `ext`, `mediaType`, `attachPath`, `useYn`, `regUserNo`) 
               VALUE 
-              ('{origin_name}', '{file_name}', '.png', 'image/png', '{file_path}', 'Y', {prompt.no})
+              ('{origin_name}', '{file_name}', '.png', 'image/png', '{file_path}', 'Y', {payload["userNo"]})
         '''
         cur.execute(sql)
         conn.commit()
@@ -121,7 +101,7 @@ async def comfyUI(prompt : Prompt):
               INSERT INTO gotham.`gallery`
               (`model`, `ratio`, `prompt`, `fileNo`, `useYn`, `regUserNo`) 
               VALUE 
-              ({prompt.model}, {prompt.aspect}, '{p}', {last_id}, 'Y', {prompt.no})
+              ({prompt.model}, {prompt.aspect}, '{p}', {last_id}, 'Y', {payload["userNo"]})
         '''
         cur.execute(sql)
         
@@ -160,3 +140,23 @@ async def check_progress(prompt_id: str):
     except Exception as e:
       print(f"Error checking progress: {str(e)}")
     await asyncio.sleep(1)
+
+# class PromptTest(BaseModel):
+#   prompt: str
+#   init_image: str
+#   model: int
+#   aspect: int
+
+# @route.post("/gentest")
+# def test(promptTest: PromptTest): 
+#   now = datetime.now()
+#   formatted_date = now.strftime("%Y%m%d")
+#   path = f"images/{formatted_date}"
+#   if not os.path.exists(path):
+#     os.makedirs(path)
+#   image_data = base64.b64decode(promptTest.init_image.replace("data:image/png;base64,", ""))
+#   file_name = uuid.uuid1().hex
+#   file_path = f"{path}/{file_name}.png"
+#   with open(file_path, "wb") as f:
+#     f.write(image_data)
+#   return {"status": True}

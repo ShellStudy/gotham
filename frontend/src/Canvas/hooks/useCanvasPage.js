@@ -146,8 +146,7 @@ export default function useCanvasPage() {
   const [dbItems, setDbItems] = useState([]);
   const refreshDB = useCallback(() => setDbItems(mockdb.list()), []);
   const toggleDB = useCallback(() => { 
-    const userNo = getUserNo()
-    FastAPI("POST",`/canvas/${userNo}`,{})
+    FastAPI("POST",'/canvas',{})
     .then(res => {
       if(res.status) {
         setDbOpen(true)
@@ -183,10 +182,9 @@ export default function useCanvasPage() {
     if (!name) { setSavingDB(false); return; }
 
     // userNo, name, draft << 데이터베이스에 저장
-    const userNo = getUserNo();
     const draft = await saveNow();
     
-    FastAPI("PUT", "/canvas", {userNo, name, draft})
+    FastAPI("PUT", "/canvas", {name, draft})
     .then(res => {
       if(res.status) {
         setToast({ type: 'ok', msg: 'DB(모의) 저장 완료' });

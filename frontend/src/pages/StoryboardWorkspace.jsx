@@ -50,7 +50,7 @@ export default function StoryboardWorkspace() {
   const canNext = index < Math.max(0, total - 1);
 
   // ---------- fetch ----------
-  useEffect(() => {
+  const getData = () => {
     FastAPI('POST', `/storyboard/${id}`, {})
       .then((res) => {
         if (!res?.status) return;
@@ -63,6 +63,9 @@ export default function StoryboardWorkspace() {
         setCurrent(list[0] || null);
       })
       .catch((e) => console.error(e));
+  }
+  useEffect(() => {
+    getData()
   }, [id]);
 
   // index → current 반영 + 자막 DOM 초기화(언컨트롤드)
@@ -114,13 +117,7 @@ export default function StoryboardWorkspace() {
     FastAPI("DELETE", `/storyboard/detail`, { "no": id, storyboards })
     .then(res => {
       if (res?.status) {
-        const board = res.result?.story_board;
-        const list = res.result?.story_board_detail;
-        setSb(board);
-        setScenes(list);
-        setTotal(list.length || 0);
-        setIndex(0);
-        setCurrent(list[0] || null);
+        getData()
       }
       setSelectedIds(new Set());
       setIsDeleteMode(false);

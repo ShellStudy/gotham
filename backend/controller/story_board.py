@@ -1,6 +1,7 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
 from pydantic import BaseModel
 from config.db import getConn
+from config.token import get_current
 import mariadb
 import json
 
@@ -15,14 +16,12 @@ class StoryboardDelete(BaseModel):
 class Storyboard(BaseModel):
   title: str
   tag: str
-  regUserNo: int
   
 class StoryboardDetail(BaseModel):
   storyBoardNo: int
   order: int
   fileNo: int
   caption: str
-  regUserNo: int
   
 class StoryboardDetails(BaseModel):
   storyboards: str
@@ -32,7 +31,7 @@ class StoryboardDetailDelete(BaseModel):
   storyboards: str
 
 @route.post("/storyboard")
-def findAll(sbq: StoryboardQuery):
+def findAll(sbq: StoryboardQuery, payload = Depends(get_current)):
   try:
     conn = getConn()
     cur = conn.cursor()
@@ -40,6 +39,7 @@ def findAll(sbq: StoryboardQuery):
           SELECT `no`, `title`, `tag`
             FROM gotham.`story_board`
           WHERE useYn = 'Y'
+          AND `regUserNo` = {payload["userNo"]}
           AND `tag` like '%{sbq.q}%'
           ORDER BY `no` DESC
     '''
@@ -59,7 +59,7 @@ def findAll(sbq: StoryboardQuery):
     return {"status": False}
     
 @route.post("/storyboard/{no}")
-def findByOne(no: int):
+def findByOne(no: int, payload = Depends(get_current)):
   try:
     conn = getConn()
     cur = conn.cursor()
@@ -68,6 +68,7 @@ def findByOne(no: int):
           SELECT `no`, `title`, `tag`
             FROM gotham.`story_board`
           WHERE useYn = 'Y'
+            AND `regUserNo` = {payload["userNo"]}
             AND `no` = {no}
           ORDER BY `no` DESC
     '''
@@ -99,7 +100,7 @@ def findByOne(no: int):
     return {"status": False}
 
 @route.put("/storyboard")
-def makeStoryBoard(sb: Storyboard):
+def makeStoryBoard(sb: Storyboard, payload = Depends(get_current)):
   try:
     conn = getConn()
     cur = conn.cursor()
@@ -107,7 +108,7 @@ def makeStoryBoard(sb: Storyboard):
         INSERT INTO gotham.`story_board`
         (`title`, `tag`, `useYn`, `regUserNo`)
         VALUE 
-        ('{sb.title}', '{sb.tag}', 'Y', {sb.regUserNo})
+        ('{sb.title}', '{sb.tag}', 'Y', {payload["userNo"]})
     '''
     cur.execute(sql)
     conn.commit()
@@ -118,7 +119,7 @@ def makeStoryBoard(sb: Storyboard):
             INSERT INTO gotham.`story_board_detail` 
             (`storyBoardNo`, `order`, `fileNo`, `caption`, `useYn`, `regUserNo`)
             VALUE 
-            ({storyBoardNo}, {order}, 0, null, 'Y', {sb.regUserNo})
+            ({storyBoardNo}, {order}, 0, null, 'Y', {payload["userNo"]})
       '''
       cur.execute(sql)
       conn.commit()
@@ -131,7 +132,7 @@ def makeStoryBoard(sb: Storyboard):
     return {"status": False}
   
 @route.delete("/storyboard")
-def deleteStoryBoard(sbd: StoryboardDelete):
+def deleteStoryBoard(sbd: StoryboardDelete, payload = Depends(get_current)):
   try:
     conn = getConn()
     cur = conn.cursor()
@@ -139,13 +140,13 @@ def deleteStoryBoard(sbd: StoryboardDelete):
     storyBoardNos = sbd.storyboards.split(",")
     for no in storyBoardNos:
       sql = f'''
-            UPDATE gotham.`story_board` SET useYn = 'N' WHERE `no` = {no}
+            UPDATE gotham.`story_board` SET useYn = 'N', modUserNo = {payload["userNo"]} WHERE `no` = {no}
       '''
       cur.execute(sql)
       conn.commit()
       
       sql = f'''
-            UPDATE gotham.`story_board_detail` SET useYn = 'N' WHERE `storyBoardNo` = {no}
+            UPDATE gotham.`story_board_detail` SET useYn = 'N', modUserNo = {payload["userNo"]} WHERE `storyBoardNo` = {no}
       '''
       cur.execute(sql)
       conn.commit()
@@ -158,17 +159,19 @@ def deleteStoryBoard(sbd: StoryboardDelete):
     return {"status": False}
   
 @route.put("/storyboard/detail")
-def editDetail(sbd: StoryboardDetails):
+def editDetail(sbd: StoryboardDetails, payload = Depends(get_current)):
   try:
     conn = getConn()
     cur = conn.cursor()
     
     storyBoards = json.loads(sbd.storyboards)
     for detail in storyBoards:
+      caption = f"caption = '{detail["caption"]}'," if detail["caption"] != None else 'caption = null,'
       sql = f'''
             UPDATE gotham.`story_board_detail` 
               SET fileNo = {detail["fileNo"]},
-                  caption = '{detail["caption"]}'  
+                  {caption}
+                  modUserNo = {payload["userNo"]}
             WHERE `storyBoardNo` = {detail["storyBoardNo"]}
               AND `no` = {detail["no"]}
       '''
@@ -183,17 +186,18 @@ def editDetail(sbd: StoryboardDetails):
     return {"status": False}
   
 @route.delete("/storyboard/detail")
-def deleteDetail(sbd: StoryboardDetailDelete):
+def deleteDetail(sbd: StoryboardDetailDelete, payload = Depends(get_current)):
   try:
     conn = getConn()
     cur = conn.cursor()
-    
+
     storyBoardNos = sbd.storyboards.split(",")
     for no in storyBoardNos:
       sql = f'''
           UPDATE gotham.`story_board_detail` 
             SET fileNo = 0,
-                caption = null
+                caption = null,
+                modUserNo = {payload["userNo"]}
           WHERE `no` = {no}
       '''
       cur.execute(sql)
@@ -201,8 +205,7 @@ def deleteDetail(sbd: StoryboardDetailDelete):
     cur.close()
     conn.close()
     
-    return findByOne(sbd.no)
-    # return {"status": True}
+    return {"status": True}
   except mariadb.Error as e:
     print(f"MariaDB 오류 발생: {e}")
     return {"status": False}

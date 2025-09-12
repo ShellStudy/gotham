@@ -1,19 +1,18 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
 from fastapi.responses import FileResponse
 from pydantic import BaseModel
 from config.db import getConn
+from config.token import get_current
 import mariadb
-import os
 
 route = APIRouter(tags=["캔버스 드로잉"])
 
 class Canvas(BaseModel):
-  userNo: int
   name: str
   draft: str
 
-@route.post("/canvas/{no}")
-def findAll(no: int):
+@route.post("/canvas")
+def findAll(payload = Depends(get_current)):
   try:
     conn = getConn()
     cur = conn.cursor()
@@ -22,7 +21,7 @@ def findAll(no: int):
           SELECT `no`, `name`, `draft`, `regDate`
             FROM gotham.`canvas`
           WHERE useYn = 'Y'
-            AND regUserNo = {no}
+            AND regUserNo = {payload["userNo"]}
     '''
     cur.execute(sql)
     columns = [desc[0] for desc in cur.description]
@@ -40,7 +39,7 @@ def findAll(no: int):
     return {"status": False}
   
 @route.put("/canvas")
-def insert(canvas: Canvas):
+def insert(canvas: Canvas, payload = Depends(get_current)):
   try:
     conn = getConn()
     cur = conn.cursor()
@@ -49,7 +48,7 @@ def insert(canvas: Canvas):
           INSERT INTO gotham.`canvas`
             (`name`, `draft`, `useYn`, `regUserNo`)
           VALUE 
-            ('{canvas.name}', '{canvas.draft}', 'Y', {canvas.userNo})  
+            ('{canvas.name}', '{canvas.draft}', 'Y', {payload["userNo"]})  
     '''
     cur.execute(sql)
     conn.commit()
